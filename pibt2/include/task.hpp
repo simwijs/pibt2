@@ -25,3 +25,4 @@ struct Task {
 };
 
 using Tasks = std::vector<Task*>;
+using TimedTasks = std::vector<Tasks>;  // Simon #6

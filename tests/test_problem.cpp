@@ -45,7 +45,9 @@ TEST(MAPF_Instance, plan)
 
 TEST(MAPD_Instance, load)
 {
-  auto P = MAPD_Instance("../tests/instances/toy_mapd.txt");
+  // Simon #6
+  auto P = MAPD_Instance("../tests/instances/toy_mapd.txt",
+                         "../tests/instances/toy_tasks.task");
 
   auto init_pos = P.getStart(0)->pos;
 

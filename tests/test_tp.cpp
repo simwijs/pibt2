@@ -4,7 +4,8 @@
 
 TEST(TP, solve)
 {
-  auto P = MAPD_Instance("../tests/instances/tp_mapd.txt");
+  auto P = MAPD_Instance("../tests/instances/tp_mapd.txt",
+                         "../tests/instances/tasks.task");
   auto solver = std::make_unique<TP>(&P);
   solver->solve();
 

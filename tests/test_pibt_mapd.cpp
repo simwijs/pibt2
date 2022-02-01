@@ -4,7 +4,8 @@
 
 TEST(PIBT_MAPD, solve)
 {
-  auto P = MAPD_Instance("../tests/instances/test_mapd_pibt_ins.txt");
+  auto P = MAPD_Instance("../tests/instances/test_mapd_pibt_ins.txt",
+                         "../tests/instances/tasks.task");
   auto solver = std::make_unique<PIBT_MAPD>(&P);
   solver->solve();
 

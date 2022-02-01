@@ -2,6 +2,7 @@
 
 #include <fstream>
 #include <iomanip>
+#include <iostream>
 
 MinimumSolver::MinimumSolver(Problem* _P)
     : solver_name(""),
@@ -595,13 +596,52 @@ float MAPD_Solver::getAverageServiceTime()
 
 void MAPD_Solver::printResult()
 {
-  std::cout << "solved=" << solved << ", solver=" << std::right << std::setw(8)
-            << solver_name << ", comp_time(ms)=" << std::right << std::setw(8)
-            << getCompTime() << " (pre=" << std::right << std::setw(8)
-            << preprocessing_comp_time << ")"
-            << ", makespan=" << std::right << std::setw(4)
-            << solution.getMakespan() << ", service time (ave)=" << std::right
-            << std::setw(6) << getAverageServiceTime() << std::endl;
+  // std::cout << "solved=" << solved << ", solver=" << std::right <<
+  // std::setw(8)
+  //           << solver_name << ", comp_time(ms)=" << std::right <<
+  //           std::setw(8)
+  //           << getCompTime() << " (pre=" << std::right << std::setw(8)
+  //           << preprocessing_comp_time << ")"
+  //           << ", makespan=" << std::right << std::setw(4)
+  //           << solution.getMakespan() << ", service time (ave)=" <<
+  //           std::right
+  //           << std::setw(6) << getAverageServiceTime() << std::endl;
+
+  std::fstream file;
+  file.open("instances_summary.txt", std::fstream::in | std::fstream::app);
+
+  if (file.peek() == std::ifstream::traits_type::eof()) {
+    file << "Map;Task;Nb_Agent;Nb_Task;Makespan;Computation_Time;Average_"
+            "Service_Time;Used_Solver;solved;preprocessing_comp_time;;;;;;;";
+  }
+  Grid* grid = reinterpret_cast<Grid*>(P->getG());
+  file << grid->getMapFileName() << ";";
+  // file << "instance=" << P->getInstanceFileName() << ";";
+  file << P->getTaskFrequency() << ";";  // instance
+  file << P->getNum() << ";";            // agents
+  file << P->getTaskNum() << ";";
+  file << solution.getMakespan() << ";";
+  file << getCompTime() << ";";
+  file << getAverageServiceTime() << ";";
+  file << "solver=" << solver_name << ";";
+  file << "solved=" << solved << ";";
+  file << "preprocessing_comp_time=" << preprocessing_comp_time << ";";
+
+  file << std::endl;
+  file.close();
+
+  std::cout << grid->getMapFileName() << ";";
+  // file << "instance=" << P->getInstanceFileName() << ";";
+  std::cout << P->getTaskFrequency() << ";";  // instance
+  std::cout << P->getNum() << ";";            // agents
+  std::cout << P->getTaskNum() << ";";
+  std::cout << solution.getMakespan() << ";";
+  std::cout << getCompTime() << ";";
+  std::cout << getAverageServiceTime() << ";";
+  std::cout << "solver=" << solver_name << ";";
+  std::cout << "solved=" << solved << ";";
+  std::cout << "preprocessing_comp_time=" << preprocessing_comp_time << ";";
+  std::cout << std::endl;
 }
 
 void MAPD_Solver::makeLog(const std::string& logfile)

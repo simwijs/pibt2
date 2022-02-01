@@ -68,6 +68,9 @@ void PIBT_MAPD::run()
       // for log
       Nodes targets;
       Tasks tasks;
+      // std::cout << "Unassigned tasks: " << unassigned_tasks.size() <<
+      // std::endl
+      //           << std::flush;
 
       for (auto a : A) {
         // agent is already assigned task
@@ -95,7 +98,8 @@ void PIBT_MAPD::run()
             unassigned_tasks.erase(itr);  // remove from unassigned_tasks
             break;
           }
-
+          // TODO(simon) this is maybe where we prioritise by arrivla time of
+          // tasks
           if (d < min_d) {
             min_d = d;
             a->g = task->loc_pickup;

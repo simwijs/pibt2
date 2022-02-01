@@ -293,15 +293,74 @@ void MAPF_Instance::makeScenFile(const std::string& output_file)
   log.close();
 }
 
+// Simon #6
+/**
+ * @brief Reads tasks from a task file
+ *
+ */
+void MAPD_Instance::read_task_file()
+{
+  std::ifstream file(task_file);
+  if (!file) halt("Couldn't open task file " + task_file);
+  if (file.is_open()) {
+    std::string line, value;
+    getline(file, line);
+
+    // We read the number of task
+    task_num = stoi(line);
+
+    int last_release = 0;
+    // For each task
+    for (int task = 0; task < task_num; ++task) {
+      // We get the release date
+      file >> value;
+      int release_date = stoi(value);
+
+      if (release_date > last_release) last_release = release_date;
+
+      // We get the pickup node
+      file >> value;
+      int p = stoi(value);
+
+      // We get the delivery node
+      file >> value;
+      int d = stoi(value);
+
+      // We don't use the last two values
+      file >> value;
+      file >> value;
+
+      // Read the batch id
+      // int batch_id = stoi(value);
+      // file >> value;
+      Node* pickup = get_endpoint_node_from_int(p);
+      Node* delivery = get_endpoint_node_from_int(d);
+
+      // We create a new task in the instance's list
+      TASKS.push_back(new Task(pickup, delivery, release_date));  // +1?
+    }
+    file.close();
+
+    // Index tasks by release time
+    TASKS_SCHEDULED.resize(last_release + 1);
+    for (auto task : TASKS) {
+      TASKS_SCHEDULED[task->timestep_appear].push_back(task);
+    }
+  }
+}
+
 // -------------------------------------------
 // MAPD
-MAPD_Instance::MAPD_Instance(const std::string& _instance)
-    : Problem(_instance), current_timestep(-1), specify_pickup_deliv_locs(true)
+MAPD_Instance::MAPD_Instance(const std::string& _instance,
+                             const std::string& _task_file)
+    : Problem(_instance),
+      current_timestep(-1),
+      specify_pickup_deliv_locs(true),
+      task_file(_task_file)
 {
   // read instance file
   std::ifstream file(instance);
   if (!file) halt("file " + instance + " is not found.");
-
   std::string line;
   std::smatch results;
   std::regex r_comment = std::regex(R"(#.+)");
@@ -310,8 +369,9 @@ MAPD_Instance::MAPD_Instance(const std::string& _instance)
   std::regex r_seed = std::regex(R"(seed=(\d+))");
   std::regex r_max_timestep = std::regex(R"(max_timestep=(\d+))");
   std::regex r_max_comp_time = std::regex(R"(max_comp_time=(\d+))");
-  std::regex r_task_num = std::regex(R"(task_num=(\d+))");
-  std::regex r_task_frequency = std::regex(R"(task_frequency=(.+))");
+  // Simon #6
+  // std::regex r_task_num = std::regex(R"(task_num=(\d+))");
+  // std::regex r_task_frequency = std::regex(R"(task_frequency=(.+))");
   std::regex r_specify_pikup_deliv_locs =
       std::regex(R"(specify_pikup_deliv_locs=(\d+))");
   std::regex r_sg = std::regex(R"((\d+),(\d+))");
@@ -349,16 +409,16 @@ MAPD_Instance::MAPD_Instance(const std::string& _instance)
       continue;
     }
     // set the number of tasks
-    if (std::regex_match(line, results, r_task_num)) {
-      task_num = std::stoi(results[1].str());
-      continue;
-    }
-    // set task frequency
-    if (std::regex_match(line, results, r_task_frequency)) {
-      task_frequency = std::stof(results[1].str());
-      continue;
-    }
-    // set task frequency
+    // if (std::regex_match(line, results, r_task_num)) {
+    //   task_num = std::stoi(results[1].str());
+    //   continue;
+    // }
+    // // set task frequency
+    // if (std::regex_match(line, results, r_task_frequency)) {
+    //   task_frequency = std::stof(results[1].str());
+    //   continue;
+    // }
+    // set pickup and delivery locations
     if (std::regex_match(line, results, r_specify_pikup_deliv_locs)) {
       specify_pickup_deliv_locs = (bool)std::stoi(results[1].str());
       continue;
@@ -390,7 +450,7 @@ MAPD_Instance::MAPD_Instance(const std::string& _instance)
     LOCS_PICKUP = G->getV();
     LOCS_DELIVERY = G->getV();
   }
-
+  read_task_file();
   // check starts
   if (num_agents <= 0) halt("invalid number of agents");
   if (num_agents > (int)config_s.size()) {
@@ -430,8 +490,25 @@ MAPD_Instance::MAPD_Instance(const std::string& _instance)
 
 MAPD_Instance::~MAPD_Instance()
 {
-  for (auto task : TASKS_OPEN) delete task;
-  for (auto task : TASKS_CLOSED) delete task;
+  // for (auto task : TASKS_OPEN) delete task;
+  // for (auto task : TASKS_CLOSED) delete task;
+  for (auto task : TASKS) delete task;
+}
+
+// Simon #6
+/**
+ * @brief Gets a node from a node number (sequential num instead of x, y)
+ *
+ * @param num Node number
+ * @return Node
+ */
+Node* MAPD_Instance::get_endpoint_node_from_int(int num)
+{
+  if (num > LOCS_ENDPOINTS.size()) {
+    halt("Node number " + std::to_string(num) +
+         " is greater than endpoints size");
+  }
+  return LOCS_ENDPOINTS[num];
 }
 
 void MAPD_Instance::setupSpetialNodes()
@@ -486,6 +563,11 @@ void MAPD_Instance::setupSpetialNodes()
     }
     ++y;
   }
+  std::cout << "PICKUPS " << LOCS_PICKUP.size() << " DELIVERIES "
+            << LOCS_DELIVERY.size() << "NONTASK "
+            << LOCS_NONTASK_ENDPOINTS.size() << " ENDPOINTS "
+            << LOCS_ENDPOINTS.size() << std::endl
+            << std::flush;
 }
 
 void MAPD_Instance::update()
@@ -509,20 +591,46 @@ void MAPD_Instance::update()
   }
 
   // create new tasks
-  int created_task_num = int(TASKS_OPEN.size() + TASKS_CLOSED.size());
-  if (created_task_num < task_num) {
-    int new_task_num = (int)task_frequency;
-    if (task_frequency < 1 && getRandomFloat(0, 1, MT) < task_frequency) {
-      new_task_num = 1;
-    }
-    new_task_num = std::min(new_task_num, task_num - created_task_num);
-    for (int i = 0; i < new_task_num; ++i) {
-      Node *p, *d;
-      do {
-        p = randomChoose(LOCS_PICKUP, MT);
-        d = randomChoose(LOCS_DELIVERY, MT);
-      } while (p == d);
-      TASKS_OPEN.push_back(new Task(p, d, current_timestep + 1));
+  // TODO(simon) write a reader that saves the tasks per timestep and release
+  // them here if it is time
+  /****
+   * PSEUDO CODE
+   * Tasks = vector<vector<Task*>>
+   * for auto task: vector[current_timestep] {
+   *  TASKS_OPEN.push_back(task);
+   *  }
+   *
+   * */
+  // Simon #6
+  // int created_task_num = int(TASKS_OPEN.size() + TASKS_CLOSED.size());
+  // if (created_task_num < task_num) {
+  //   int new_task_num = (int)task_frequency;
+  //   if (task_frequency < 1 && getRandomFloat(0, 1, MT) < task_frequency) {
+  //     new_task_num = 1;
+  //   }
+  //   new_task_num = std::min(new_task_num, task_num - created_task_num);
+  //   for (int i = 0; i < new_task_num; ++i) {
+  //     Node *p, *d;
+  //     do {
+  //       p = randomChoose(LOCS_PICKUP, MT);
+  //       d = randomChoose(LOCS_DELIVERY, MT);
+  //     } while (p == d);
+  //     TASKS_OPEN.push_back(new Task(p, d, current_timestep + 1));
+  //   }
+  // }
+  // SImon #6
+  // std::cout << "Getting tasks" << std::endl << std::flush;
+  // std::cout << "Tasks at timeste " + std::to_string(current_timestep) + " is
+  // " +
+  //                  std::to_string(TASKS_SCHEDULED[current_timestep].size())
+  //           << std::endl
+  //           << std::flush;
+
+  if (current_timestep < TASKS_SCHEDULED.size()) {
+    for (auto task : TASKS_SCHEDULED[current_timestep]) {
+      task->timestep_appear = current_timestep + 1;  // It will be handled in
+      // the next loop, hence +1
+      TASKS_OPEN.push_back(task);
     }
   }
 

@@ -99,10 +99,15 @@ class MAPD_Instance : public Problem
 private:
   float task_frequency;
   int task_num;
+  // Simon #6
+  std::string task_file;
 
   int current_timestep;  // current timestep
   Tasks TASKS_OPEN;
   Tasks TASKS_CLOSED;
+  // Simon #6
+  TimedTasks TASKS_SCHEDULED;  // Tasks indexed by timestep
+  Tasks TASKS;                 // All tasks
 
   Nodes LOCS_PICKUP;             // candidates of pickup locations
   Nodes LOCS_DELIVERY;           // candidates of delivery locations
@@ -111,9 +116,12 @@ private:
 
   bool specify_pickup_deliv_locs;
   void setupSpetialNodes();
+  void read_task_file();
+  Node* get_endpoint_node_from_int(int num);
 
 public:
-  MAPD_Instance(const std::string& _instance);
+  MAPD_Instance(const std::string& _instance,
+                const std::string& _task_file);  // Simon #6
   ~MAPD_Instance();
 
   void update();
