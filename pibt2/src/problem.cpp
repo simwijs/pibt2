@@ -310,6 +310,7 @@ void MAPD_Instance::read_task_file()
     task_num = stoi(line);
 
     int last_release = 0;
+    int current_batch = -1;
     // For each task
     for (int task = 0; task < task_num; ++task) {
       // We get the release date
@@ -331,13 +332,23 @@ void MAPD_Instance::read_task_file()
       file >> value;
 
       // Read the batch id
-      // int batch_id = stoi(value);
-      // file >> value;
+      file >> value;
+      int batch_id = stoi(value);
+
+      // Create batch if it doesn't exist
+      if (batch_id > current_batch) {
+        current_batch++;
+        Batch* batch = new Batch(batch_id);
+        batches.push_back(batch);
+      }
+
       Node* pickup = get_endpoint_node_from_int(p);
       Node* delivery = get_endpoint_node_from_int(d);
 
+      Task* task_obj = new Task(pickup, delivery, release_date, batch_id);
+      batches[current_batch]->add_task(task_obj);
       // We create a new task in the instance's list
-      TASKS.push_back(new Task(pickup, delivery, release_date));  // +1?
+      TASKS.push_back(task_obj);
     }
     file.close();
 
@@ -523,13 +534,7 @@ void MAPD_Instance::setupSpetialNodes()
 #endif
   if (!file) return;
 
-  std::string line, s;
-  std::smatch results;
-  std::regex r_obj = std::regex(R"([@T])");
-  std::regex r_pickup = std::regex(R"([psa])");  // pickup loc.
-  std::regex r_deliv = std::regex(R"([dsa])");   // delivery loc.
-  std::regex r_end = std::regex(R"([ea])");      // end loc.
-
+  std::string line;
   const int width = grid->getWidth();
 
   int y = 0;
@@ -543,31 +548,10 @@ void MAPD_Instance::setupSpetialNodes()
       if (!G->existNode(x, y)) continue;
 
       auto v = G->getNode(x, y);
-      s = line[x];
-      bool flg_endpoints = false;
-      if (std::regex_match(s, results, r_pickup)) {
-        LOCS_PICKUP.push_back(v);
-        flg_endpoints = true;
-      }
-      if (std::regex_match(s, results, r_deliv)) {
-        LOCS_DELIVERY.push_back(v);
-        flg_endpoints = true;
-      }
-      if (std::regex_match(s, results, r_end)) {
-        LOCS_NONTASK_ENDPOINTS.push_back(v);
-        flg_endpoints = true;
-      }
-      if (flg_endpoints) {
-        LOCS_ENDPOINTS.push_back(v);
-      }
+      LOCS_ENDPOINTS.push_back(v);
     }
     ++y;
   }
-  std::cout << "PICKUPS " << LOCS_PICKUP.size() << " DELIVERIES "
-            << LOCS_DELIVERY.size() << "NONTASK "
-            << LOCS_NONTASK_ENDPOINTS.size() << " ENDPOINTS "
-            << LOCS_ENDPOINTS.size() << std::endl
-            << std::flush;
 }
 
 void MAPD_Instance::update()
@@ -590,42 +574,7 @@ void MAPD_Instance::update()
     itr = TASKS_OPEN.erase(itr);
   }
 
-  // create new tasks
-  // TODO(simon) write a reader that saves the tasks per timestep and release
-  // them here if it is time
-  /****
-   * PSEUDO CODE
-   * Tasks = vector<vector<Task*>>
-   * for auto task: vector[current_timestep] {
-   *  TASKS_OPEN.push_back(task);
-   *  }
-   *
-   * */
-  // Simon #6
-  // int created_task_num = int(TASKS_OPEN.size() + TASKS_CLOSED.size());
-  // if (created_task_num < task_num) {
-  //   int new_task_num = (int)task_frequency;
-  //   if (task_frequency < 1 && getRandomFloat(0, 1, MT) < task_frequency) {
-  //     new_task_num = 1;
-  //   }
-  //   new_task_num = std::min(new_task_num, task_num - created_task_num);
-  //   for (int i = 0; i < new_task_num; ++i) {
-  //     Node *p, *d;
-  //     do {
-  //       p = randomChoose(LOCS_PICKUP, MT);
-  //       d = randomChoose(LOCS_DELIVERY, MT);
-  //     } while (p == d);
-  //     TASKS_OPEN.push_back(new Task(p, d, current_timestep + 1));
-  //   }
-  // }
-  // SImon #6
-  // std::cout << "Getting tasks" << std::endl << std::flush;
-  // std::cout << "Tasks at timeste " + std::to_string(current_timestep) + " is
-  // " +
-  //                  std::to_string(TASKS_SCHEDULED[current_timestep].size())
-  //           << std::endl
-  //           << std::flush;
-
+  // Release the tasks per their release timestep
   if (current_timestep < TASKS_SCHEDULED.size()) {
     for (auto task : TASKS_SCHEDULED[current_timestep]) {
       task->timestep_appear = current_timestep + 1;  // It will be handled in

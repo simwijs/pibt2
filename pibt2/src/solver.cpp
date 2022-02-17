@@ -1,5 +1,7 @@
 #include "../include/solver.hpp"
 
+#include <bits/stdc++.h>
+
 #include <fstream>
 #include <iomanip>
 #include <iostream>
@@ -594,6 +596,41 @@ float MAPD_Solver::getAverageServiceTime()
   return getTotalServiceTime() / P->getClosedTasks().size();
 }
 
+double MAPD_Solver::getAverageBatchServiceTime()
+{
+  int total = 0;
+  int size = P->getBatches().size();
+  for (auto b : P->getBatches()) {
+    total += b->get_service_time();
+  }
+
+  return total / (double)size;
+}
+
+double MAPD_Solver::getMinBatchServiceTime()
+{
+  int min = INT_MAX;
+  for (auto b : P->getBatches()) {
+    int st = b->get_service_time();
+    if (st < min) {
+      min = st;
+    }
+  }
+  return min;
+}
+
+double MAPD_Solver::getMaxBatchServiceTime()
+{
+  int max = 0;
+  for (auto b : P->getBatches()) {
+    int st = b->get_service_time();
+    if (st > max) {
+      max = st;
+    }
+  }
+  return max;
+}
+
 void MAPD_Solver::printResult()
 {
   // std::cout << "solved=" << solved << ", solver=" << std::right <<
@@ -617,12 +654,14 @@ void MAPD_Solver::printResult()
   Grid* grid = reinterpret_cast<Grid*>(P->getG());
   file << grid->getMapFileName() << ";";
   // file << "instance=" << P->getInstanceFileName() << ";";
-  file << P->getTaskFrequency() << ";";  // instance
-  file << P->getNum() << ";";            // agents
+  file << P->getNum() << ";";  // agents
   file << P->getTaskNum() << ";";
   file << solution.getMakespan() << ";";
   file << getCompTime() << ";";
   file << getAverageServiceTime() << ";";
+  file << getAverageBatchServiceTime() << ";";
+  file << getMinBatchServiceTime() << ";";
+  file << getMaxBatchServiceTime() << ";";
   file << "solver=" << solver_name << ";";
   file << "solved=" << solved << ";";
   file << "preprocessing_comp_time=" << preprocessing_comp_time << ";";
@@ -632,12 +671,14 @@ void MAPD_Solver::printResult()
 
   std::cout << grid->getMapFileName() << ";";
   // file << "instance=" << P->getInstanceFileName() << ";";
-  std::cout << P->getTaskFrequency() << ";";  // instance
-  std::cout << P->getNum() << ";";            // agents
+  std::cout << P->getNum() << ";";  // agents
   std::cout << P->getTaskNum() << ";";
   std::cout << solution.getMakespan() << ";";
   std::cout << getCompTime() << ";";
   std::cout << getAverageServiceTime() << ";";
+  std::cout << getAverageBatchServiceTime() << ";";
+  std::cout << getMinBatchServiceTime() << ";";
+  std::cout << getMaxBatchServiceTime() << ";";
   std::cout << "solver=" << solver_name << ";";
   std::cout << "solved=" << solved << ";";
   std::cout << "preprocessing_comp_time=" << preprocessing_comp_time << ";";

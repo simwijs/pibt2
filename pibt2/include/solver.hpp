@@ -275,6 +275,9 @@ private:
 public:
   float getTotalServiceTime();
   float getAverageServiceTime();
+  double getAverageBatchServiceTime();
+  double getMaxBatchServiceTime();
+  double getMinBatchServiceTime();
 
   // -------------------------------
   // main

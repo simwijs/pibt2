@@ -105,6 +105,7 @@ private:
   int current_timestep;  // current timestep
   Tasks TASKS_OPEN;
   Tasks TASKS_CLOSED;
+  Batches batches;
   // Simon #6
   TimedTasks TASKS_SCHEDULED;  // Tasks indexed by timestep
   Tasks TASKS;                 // All tasks
@@ -131,4 +132,5 @@ public:
   Tasks getOpenTasks() { return TASKS_OPEN; }
   Tasks getClosedTasks() { return TASKS_CLOSED; }
   Nodes getEndpoints() { return LOCS_ENDPOINTS; }
+  Batches getBatches() { return batches; }
 };
