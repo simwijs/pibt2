@@ -208,6 +208,7 @@ void MAPF_Solver::makeLog(const std::string& logfile)
   log.open(logfile, std::ios::out);
   makeLogBasicInfo(log);
   makeLogSolution(log);
+  outputSchedule();
   log.close();
 }
 
@@ -691,6 +692,7 @@ void MAPD_Solver::makeLog(const std::string& logfile)
   log.open(logfile, std::ios::out);
   makeLogBasicInfo(log);
   makeLogSolution(log);
+  outputSchedule();
   log.close();
 }
 
@@ -739,4 +741,35 @@ void MAPD_Solver::makeLogSolution(std::ofstream& log)
     }
     log << "\n";
   }
+}
+
+// Output the schedule on YAML format per agent per timestep
+void MinimumSolver::outputScheduleCommon(const std::string& output_file,
+                                         int agents)
+{
+  std::fstream file;
+  file.open(output_file, std::fstream::out);
+  file << "schedule:" << std::endl;
+  for (int agent = 0; agent < agents; ++agent) {
+    file << "  agent" << agent << ":" << std::endl;
+    // For every timstep
+    for (int t = 0; t < solution.getMakespan(); ++t) {
+      // Output the agent position at timestep t
+      auto agent_at_t = solution.get(t, agent);
+      file << "      x: " << agent_at_t->pos.x << std::endl;
+      file << "      y: " << agent_at_t->pos.y << std::endl;
+      file << "      t: " << t << std::endl;
+    }
+  }
+  file.close();
+}
+
+void MAPF_Solver::outputSchedule(const std::string& output_file)
+{
+  outputScheduleCommon(output_file, P->getNum());
+}
+
+void MAPD_Solver::outputSchedule(const std::string& output_file)
+{
+  outputScheduleCommon(output_file, P->getNum());
 }

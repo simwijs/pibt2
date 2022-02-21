@@ -63,6 +63,7 @@ public:
   // print help
 protected:
   static void printHelpWithoutOption(const std::string& solver_name);
+  void outputScheduleCommon(const std::string& output_file, int agents);
 
   // -------------------------------
   // utilities for computing path
@@ -173,6 +174,7 @@ public:
 protected:
   virtual void makeLogBasicInfo(std::ofstream& log);
   virtual void makeLogSolution(std::ofstream& log);
+  void outputSchedule(const std::string& output_file = "output.yaml");
 
   // -------------------------------
   // params
@@ -257,6 +259,7 @@ public:
 protected:
   virtual void makeLogBasicInfo(std::ofstream& log);
   virtual void makeLogSolution(std::ofstream& log);
+  void outputSchedule(const std::string& output_file = "output.yaml");
 
   // -------------------------------
   // distance

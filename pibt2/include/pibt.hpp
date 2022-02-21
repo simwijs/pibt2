@@ -28,7 +28,6 @@ private:
     float tie_breaker;  // epsilon, tie-breaker
   };
   using Agents = std::vector<Agent*>;
-
   // <node-id, agent>, whether the node is occupied or not
   // work as reservation table
   Agents occupied_now;
