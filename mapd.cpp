@@ -15,8 +15,8 @@ std::unique_ptr<MAPD_Solver> getSolver(const std::string solver_name,
 
 int main(int argc, char* argv[])
 {
-  std::string instance_file = "";
   std::string task_file = "";
+  std::string map_file = "";
   std::string output_file = DEFAULT_OUTPUT_FILE;
   std::string solver_name;
   bool verbose = false;
@@ -24,7 +24,7 @@ int main(int argc, char* argv[])
   for (int i = 0; i < argc; ++i) argv_copy[i] = argv[i];
 
   struct option longopts[] = {
-      {"instance", required_argument, 0, 'i'},
+      {"map", required_argument, 0, 'm'},
       {"tasks", required_argument, 0, 't'},
       {"output", required_argument, 0, 'o'},
       {"solver", required_argument, 0, 's'},
@@ -38,16 +38,13 @@ int main(int argc, char* argv[])
   bool log_short = false;
   int max_comp_time = -1;
   bool use_distance_table = false;
-
+  bool is_batched = false;
   // command line args
   int opt, longindex;
   opterr = 0;  // ignore getopt error
-  while ((opt = getopt_long(argc, argv, "i:t:o:s:vhT:Ld", longopts,
+  while ((opt = getopt_long(argc, argv, "t:m:o:s:vhT:Ldb", longopts,
                             &longindex)) != -1) {
     switch (opt) {
-      case 'i':
-        instance_file = std::string(optarg);
-        break;
       case 'o':
         output_file = std::string(optarg);
         break;
@@ -72,26 +69,32 @@ int main(int argc, char* argv[])
       case 't':  // Simon #6
         task_file = std::string(optarg);
         break;
+      case 'm':  // Simon #11
+        map_file = std::string(optarg);
+        break;
+      case 'b':  // Simon #11
+        is_batched = true;
+        break;
       default:
         break;
     }
   }
 
-  if (instance_file.length() == 0) {
-    std::cout << "specify instance file using -i [INSTANCE-FILE], e.g.,"
-              << std::endl;
-    std::cout << "> ./mapd -i ../instance/sample.txt" << std::endl;
-    return 0;
-  }
   // Simon #6
   if (task_file.length() == 0) {
     std::cout << "specify task file using -t [TASK-FILE], e.g.," << std::endl;
     std::cout << "> ./mapd -t ../instance/tasks/task.txt" << std::endl;
     return 0;
   }
+  // SImon #11
+  if (map_file.length() == 0) {
+    std::cout << "specify map file using -m [MAP-FILE], e.g.," << std::endl;
+    std::cout << "> ./mapd -m ../instance/maps/map.map" << std::endl;
+    return 0;
+  }
 
   // set problem
-  auto P = MAPD_Instance(instance_file, task_file);
+  auto P = MAPD_Instance(task_file, map_file, is_batched);
 
   // set max computation time (otherwise, use param in instance_file)
   if (max_comp_time != -1) P.setMaxCompTime(max_comp_time);
@@ -142,7 +145,9 @@ void printHelp()
   std::cout
       << "\nUsage: ./mapd [OPTIONS] [SOLVER-OPTIONS]\n"
       << "\n**instance file is necessary to run MAPD simulator**\n\n"
-      << "  -i --instance [FILE_PATH]     instance file path\n"
+      << "  -t --task [FILE_PATH]         task file path\n"
+      << "  -m --map [FILE_PATH]          map file path\n"
+      << "  -b --batched                  task file is batched\n"
       << "  -o --output [FILE_PATH]       ouptut file path\n"
       << "  -v --verbose                  print additional info\n"
       << "  -h --help                     help\n"

@@ -293,12 +293,127 @@ void MAPF_Instance::makeScenFile(const std::string& output_file)
   log.close();
 }
 
+void MAPD_Instance::read_map_file()
+{
+  using namespace std;
+
+  G = new Grid(map_file);
+  ifstream file(map_file);
+  if (file.is_open()) {
+    // We initialize the value
+    string line, value;
+
+    // We read the number of row
+    file >> value;
+    int rows = stoi(value);
+    // instance->set_nb_row(stoi(value));
+
+    // // We read the number of column
+    file >> value;
+    int cols = stoi(value);
+    // instance->set_nb_column(stoi(value));
+
+    // // We read the number of endpoints
+    file >> value;
+    // int endpoints = stoi(value);
+    // instance->set_nb_endpoint(stoi(value));
+
+    // // We create the list of agents
+    file >> value;
+    num_agents = stoi(value);
+
+    // // We read the not used value
+    file >> value;
+    // int max_horizon = stoi(value);
+    // instance->set_max_horizon(max_horizon);
+
+    // // We read the end of the line
+    getline(file, line);
+
+    // // We initialize the values
+    int nb_found_agents = 0, current_node_id = -1;
+
+    // // For each row
+    for (int row = 0; row < rows; ++row) {
+      // We get the corresponding line
+      getline(file, line);
+
+      // For each column
+      for (int column = 0; column < cols; ++column) {
+        // We increment the id of the current node
+        ++current_node_id;
+
+        // We get the next node value
+        value = line.at(column);
+
+        if (G->existNode(column, row)) {
+          // Add endpoint node to list
+          auto node = G->getNode(column, row);
+          LOCATIONS.push_back(node);
+        }
+
+        if (value == "r") {
+          Node* agent = G->getNode(column, row);
+          config_s.push_back(agent);
+
+          //             // We update the values for the instance
+          //             instance->get_list_map_nodes().push_back(true);
+          //             instance->get_list_endpoints().push_back(true);
+
+          //             // We create a new agent for the problem
+          //             instance->get_list_agents().push_back(new
+          //             Agent(nb_found_agents,
+          //                                                             row*instance->get_nb_column()
+          //                                                             +
+          //                                                             column,
+          //                                                             max_horizon));
+
+          //             instance->get_list_not_possible_endpoints().push_back(row*instance->get_nb_column()
+          //             + column);
+          //             instance->get_deadline_per_not_feasible_endpoint().push_back(0);
+
+          //             // We increment the number of found agents
+          //             ++ nb_found_agents;
+          //         }
+          //         else {
+
+          //             // We update the values for the instance
+          //             instance->get_list_map_nodes().push_back(false);
+          //             instance->get_list_endpoints().push_back(false);
+        }
+      }
+    }
+  }
+
+  // // We check that the number of created agents correspond
+  // if (nb_agents != instance->get_nb_agent()){
+  //     cout << "Problem, the number of agents does not correspond" << endl;
+  //     getchar();
+  // }
+
+  // // We check that the number of created endpoints correspond
+  // if (nb_found_endpoint != instance->get_nb_endpoint()){
+  //     cout << "Problem, the number of endpoints does not correspond" <<
+  //     endl; getchar();
+  // }
+
+  // // We check that the number of node correspond
+  // if (instance->get_nb_row()*instance->get_nb_column() !=
+  // instance->get_list_map_nodes().size()){
+  //     cout << "Problem, the number of nodes does not correspond" << endl;
+  //     getchar();
+  // }
+
+  // We close the file
+  file.close();
+}
+
 // Simon #6
 /**
  * @brief Reads tasks from a task file
  *
  */
-void MAPD_Instance::read_task_file()
+void MAPD_Instance::read_task_file(bool is_batched)
 {
   std::ifstream file(task_file);
   if (!file) halt("Couldn't open task file " + task_file);
@@ -331,22 +446,26 @@ void MAPD_Instance::read_task_file()
       file >> value;
       file >> value;
 
+      int batch_id = -1;
+      std::cout << is_batched << std::endl << std::flush;
       // Read the batch id
-      file >> value;
-      int batch_id = stoi(value);
+      if (is_batched) {
+        file >> value;
+        int batch_id = stoi(value);
 
-      // Create batch if it doesn't exist
-      if (batch_id > current_batch) {
-        current_batch++;
-        Batch* batch = new Batch(batch_id);
-        batches.push_back(batch);
+        // Create batch if it doesn't exist
+        if (batch_id > current_batch) {
+          current_batch++;
+          Batch* batch = new Batch(batch_id);
+          batches.push_back(batch);
+        }
       }
 
       Node* pickup = get_endpoint_node_from_int(p);
       Node* delivery = get_endpoint_node_from_int(d);
 
       Task* task_obj = new Task(pickup, delivery, release_date, batch_id);
-      batches[current_batch]->add_task(task_obj);
+      if (is_batched) batches[current_batch]->add_task(task_obj);
       // We create a new task in the instance's list
       TASKS.push_back(task_obj);
     }
@@ -362,133 +481,37 @@ void MAPD_Instance::read_task_file()
 
 // -------------------------------------------
 // MAPD
-MAPD_Instance::MAPD_Instance(const std::string& _instance,
-                             const std::string& _task_file)
-    : Problem(_instance),
+MAPD_Instance::MAPD_Instance(const std::string& _task_file,
+                             const std::string& _map_file,
+                             const bool _is_batched)
+    : Problem(""),
       current_timestep(-1),
       specify_pickup_deliv_locs(true),
-      task_file(_task_file)
+      task_file(_task_file),
+      map_file(_map_file),
+      is_batched(_is_batched)
 {
-  // read instance file
-  std::ifstream file(instance);
-  if (!file) halt("file " + instance + " is not found.");
+  // Read map file
+  read_map_file();
   std::string line;
-  std::smatch results;
-  std::regex r_comment = std::regex(R"(#.+)");
-  std::regex r_map = std::regex(R"(map_file=(.+))");
-  std::regex r_agents = std::regex(R"(agents=(\d+))");
-  std::regex r_seed = std::regex(R"(seed=(\d+))");
-  std::regex r_max_timestep = std::regex(R"(max_timestep=(\d+))");
-  std::regex r_max_comp_time = std::regex(R"(max_comp_time=(\d+))");
-  // Simon #6
-  // std::regex r_task_num = std::regex(R"(task_num=(\d+))");
-  // std::regex r_task_frequency = std::regex(R"(task_frequency=(.+))");
-  std::regex r_specify_pikup_deliv_locs =
-      std::regex(R"(specify_pikup_deliv_locs=(\d+))");
-  std::regex r_sg = std::regex(R"((\d+),(\d+))");
-
-  while (getline(file, line)) {
-    // for CRLF coding
-    if (*(line.end() - 1) == 0x0d) line.pop_back();
-    // comment
-    if (std::regex_match(line, results, r_comment)) {
-      continue;
-    }
-    // read map
-    if (std::regex_match(line, results, r_map)) {
-      G = new Grid(results[1].str());
-      continue;
-    }
-    // set agent num
-    if (std::regex_match(line, results, r_agents)) {
-      num_agents = std::stoi(results[1].str());
-      continue;
-    }
-    // set random seed
-    if (std::regex_match(line, results, r_seed)) {
-      MT = new std::mt19937(std::stoi(results[1].str()));
-      continue;
-    }
-    // set max timestep
-    if (std::regex_match(line, results, r_max_timestep)) {
-      max_timestep = std::stoi(results[1].str());
-      continue;
-    }
-    // set max computation time
-    if (std::regex_match(line, results, r_max_comp_time)) {
-      max_comp_time = std::stoi(results[1].str());
-      continue;
-    }
-    // set the number of tasks
-    // if (std::regex_match(line, results, r_task_num)) {
-    //   task_num = std::stoi(results[1].str());
-    //   continue;
-    // }
-    // // set task frequency
-    // if (std::regex_match(line, results, r_task_frequency)) {
-    //   task_frequency = std::stof(results[1].str());
-    //   continue;
-    // }
-    // set pickup and delivery locations
-    if (std::regex_match(line, results, r_specify_pikup_deliv_locs)) {
-      specify_pickup_deliv_locs = (bool)std::stoi(results[1].str());
-      continue;
-    }
-    // read initial nodes
-    if (std::regex_match(line, results, r_sg) &&
-        (int)config_s.size() < num_agents) {
-      int x_s = std::stoi(results[1].str());
-      int y_s = std::stoi(results[2].str());
-      if (!G->existNode(x_s, y_s)) {
-        halt("start node (" + std::to_string(x_s) + ", " + std::to_string(y_s) +
-             ") does not exist, invalid scenario");
-      }
-
-      Node* s = G->getNode(x_s, y_s);
-      config_s.push_back(s);
-    }
-  }
 
   // set default value not identified params
   if (MT == nullptr) MT = new std::mt19937(DEFAULT_SEED);
-  if (max_timestep == 0) max_timestep = DEFAULT_MAX_TIMESTEP;
-  if (max_comp_time == 0) max_comp_time = DEFAULT_MAX_COMP_TIME;
-  if (task_frequency == 0) task_frequency = DEFAULT_TASK_FREQUENCY;
-  if (task_num == 0) task_num = DEFAULT_TASK_NUM;
+  max_timestep = DEFAULT_MAX_TIMESTEP;
+  max_comp_time = DEFAULT_MAX_COMP_TIME;
 
-  if (specify_pickup_deliv_locs) setupSpetialNodes();
+  // if (specify_pickup_deliv_locs) setupSpetialNodes();
   if (LOCS_PICKUP.empty()) {
     LOCS_PICKUP = G->getV();
     LOCS_DELIVERY = G->getV();
   }
-  read_task_file();
+  read_task_file(is_batched);
   // check starts
   if (num_agents <= 0) halt("invalid number of agents");
   if (num_agents > (int)config_s.size()) {
     if (!config_s.empty()) {
       warn("given starts are not sufficient\nrandomly create instances");
       config_s.clear();
-    }
-
-    // set starts
-    std::vector<int> starts(G->getNodesSize());
-    std::iota(starts.begin(), starts.end(), 0);
-    if (specify_pickup_deliv_locs && !LOCS_NONTASK_ENDPOINTS.empty()) {
-      starts.clear();
-      for (auto v : LOCS_NONTASK_ENDPOINTS) starts.push_back(v->id);
-    }
-    std::shuffle(starts.begin(), starts.end(), *MT);
-
-    int i = 0;
-    while (true) {
-      while (G->getNode(starts[i]) == nullptr) {
-        ++i;
-        if (i >= (int)starts.size()) halt("number of agents is too large.");
-      }
-
-      config_s.push_back(G->getNode(starts[i]));
-      if ((int)config_s.size() == num_agents) break;
-      ++i;
     }
   }
 
@@ -515,11 +538,11 @@ MAPD_Instance::~MAPD_Instance()
  */
 Node* MAPD_Instance::get_endpoint_node_from_int(int num)
 {
-  if (num > LOCS_ENDPOINTS.size()) {
+  if (num > LOCATIONS.size()) {
     halt("Node number " + std::to_string(num) +
          " is greater than endpoints size");
   }
-  return LOCS_ENDPOINTS[num];
+  return LOCATIONS[num];
 }
 
 void MAPD_Instance::setupSpetialNodes()
@@ -548,7 +571,7 @@ void MAPD_Instance::setupSpetialNodes()
       if (!G->existNode(x, y)) continue;
 
       auto v = G->getNode(x, y);
-      LOCS_ENDPOINTS.push_back(v);
+      LOCATIONS.push_back(v);
     }
     ++y;
   }

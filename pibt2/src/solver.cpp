@@ -644,7 +644,6 @@ void MAPD_Solver::printResult()
   //           << solution.getMakespan() << ", service time (ave)=" <<
   //           std::right
   //           << std::setw(6) << getAverageServiceTime() << std::endl;
-
   std::fstream file;
   file.open("instances_summary.txt", std::fstream::in | std::fstream::app);
 

@@ -101,6 +101,8 @@ private:
   int task_num;
   // Simon #6
   std::string task_file;
+  std::string map_file;
+  bool is_batched;
 
   int current_timestep;  // current timestep
   Tasks TASKS_OPEN;
@@ -113,16 +115,18 @@ private:
   Nodes LOCS_PICKUP;             // candidates of pickup locations
   Nodes LOCS_DELIVERY;           // candidates of delivery locations
   Nodes LOCS_NONTASK_ENDPOINTS;  // endpoints, not necessary for PIBT
-  Nodes LOCS_ENDPOINTS;          // pickup, delivery, nontasks
+  Nodes LOCATIONS;               // pickup, delivery, nontasks
 
   bool specify_pickup_deliv_locs;
   void setupSpetialNodes();
-  void read_task_file();
+  void read_task_file(bool is_batched);
+  void read_map_file();
   Node* get_endpoint_node_from_int(int num);
 
 public:
-  MAPD_Instance(const std::string& _instance,
-                const std::string& _task_file);  // Simon #6
+  MAPD_Instance(const std::string& _task_file,  // Simon #6
+                const std::string& _map_file,   // #11
+                const bool _is_batched);        // #11
   ~MAPD_Instance();
 
   void update();
@@ -131,6 +135,6 @@ public:
   float getTaskNum() const { return task_num; }
   Tasks getOpenTasks() { return TASKS_OPEN; }
   Tasks getClosedTasks() { return TASKS_CLOSED; }
-  Nodes getEndpoints() { return LOCS_ENDPOINTS; }
+  Nodes getEndpoints() { return LOCATIONS; }
   Batches getBatches() { return batches; }
 };

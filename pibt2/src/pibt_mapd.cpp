@@ -49,7 +49,6 @@ void PIBT_MAPD::run()
     info("   ", "assign task-", a->task->id, ": agent-", a->id, ", ",
          a->task->loc_pickup->id, " -> ", a->task->loc_delivery->id);
   };
-
   // main loop
   while (true) {
     info(" ", "elapsed:", getSolverElapsedTime(),
