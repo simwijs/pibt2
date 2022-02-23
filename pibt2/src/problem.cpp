@@ -447,7 +447,6 @@ void MAPD_Instance::read_task_file(bool is_batched)
       file >> value;
 
       int batch_id = -1;
-      std::cout << is_batched << std::endl << std::flush;
       // Read the batch id
       if (is_batched) {
         file >> value;
