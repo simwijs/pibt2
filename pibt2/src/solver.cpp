@@ -755,8 +755,8 @@ void MinimumSolver::outputScheduleCommon(const std::string& output_file,
     for (int t = 0; t < solution.getMakespan(); ++t) {
       // Output the agent position at timestep t
       auto agent_at_t = solution.get(t, agent);
-      file << "      x: " << agent_at_t->pos.x << std::endl;
-      file << "      y: " << agent_at_t->pos.y << std::endl;
+      file << "    - x: " << agent_at_t->pos.y << std::endl;
+      file << "      y: " << agent_at_t->pos.x << std::endl;
       file << "      t: " << t << std::endl;
     }
   }
