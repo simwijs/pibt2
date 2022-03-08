@@ -750,7 +750,8 @@ void MAPD_Solver::outputTasks(const std::string& output_file)
   file << "tasks:" << std::endl;
 
   for (auto task : P->getClosedTasks()) {
-    file << "    - start: " << task->timestep_started << std::endl;
+    file << "    task" << task->id << ":" << std::endl;
+    file << "    - start: " << task->timestep_started + 1 << std::endl;
     file << "      finish: " << task->timestep_finished << std::endl;
     file << "      batch: " << task->batch_id << std::endl;
   }
@@ -767,23 +768,14 @@ void MinimumSolver::outputScheduleCommon(const std::string& output_file,
   for (int agent = 0; agent < agents; ++agent) {
     file << "  agent" << agent << ":" << std::endl;
     // For every timstep
-    for (int t = 0; t < solution.getMakespan(); ++t) {
+    for (int t = 0; t <= solution.getMakespan(); ++t) {
       // Output the agent position at timestep t
       auto agent_at_t = solution.get(t, agent);
       file << "    - x: " << agent_at_t->pos.y << std::endl;
       file << "      y: " << agent_at_t->pos.x << std::endl;
-      file << "      t: " << t << std::endl;
+      file << "      t: " << t - 1 << std::endl;
     }
   }
-  file.close();
-}
-
-void MinimumSolver::outputTasksCommon(const std::string& output_file)
-{
-  std::fstream file;
-  file.open(output_file, std::fstream::out);
-  file << "tasks:" << std::endl;
-
   file.close();
 }
 
