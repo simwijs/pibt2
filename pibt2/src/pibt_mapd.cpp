@@ -46,6 +46,7 @@ void PIBT_MAPD::run()
     a->target_task = nullptr;
     a->task->assigned = true;
     a->g = task->loc_delivery;  // update destination
+    task->timestep_started = P->getCurrentTimestep();
     info("   ", "assign task-", a->task->id, ": agent-", a->id, ", ",
          a->task->loc_pickup->id, " -> ", a->task->loc_delivery->id);
   };

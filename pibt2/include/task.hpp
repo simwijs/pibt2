@@ -10,6 +10,8 @@ struct Task {
   Node* loc_current;
   int timestep_appear;
   int timestep_finished;
+  int timestep_started;  // Not the same as appear time, but when the task has
+                         // been picked up by an agent
   int batch_id;
   bool assigned;
   bool finished = false;
@@ -24,6 +26,7 @@ struct Task {
         timestep_appear(t),
         timestep_finished(NIL),
         batch_id(batch_id),
+        timestep_started(-1),
         assigned(false){};
 
   int get_service_time()

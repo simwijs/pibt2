@@ -64,6 +64,7 @@ public:
 protected:
   static void printHelpWithoutOption(const std::string& solver_name);
   void outputScheduleCommon(const std::string& output_file, int agents);
+  void outputTasksCommon(const std::string& output_file = "task_output.yaml");
 
   // -------------------------------
   // utilities for computing path
@@ -260,6 +261,7 @@ protected:
   virtual void makeLogBasicInfo(std::ofstream& log);
   virtual void makeLogSolution(std::ofstream& log);
   void outputSchedule(const std::string& output_file = "output.yaml");
+  void outputTasks(const std::string& output_file = "task_output.yaml");
 
   // -------------------------------
   // distance

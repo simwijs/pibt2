@@ -692,6 +692,7 @@ void MAPD_Solver::makeLog(const std::string& logfile)
   makeLogBasicInfo(log);
   makeLogSolution(log);
   outputSchedule();
+  outputTasks();
   log.close();
 }
 
@@ -742,6 +743,20 @@ void MAPD_Solver::makeLogSolution(std::ofstream& log)
   }
 }
 
+void MAPD_Solver::outputTasks(const std::string& output_file)
+{
+  std::fstream file;
+  file.open(output_file, std::fstream::out);
+  file << "tasks:" << std::endl;
+
+  for (auto task : P->getClosedTasks()) {
+    file << "    - start: " << task->timestep_started << std::endl;
+    file << "      finish: " << task->timestep_finished << std::endl;
+    file << "      batch: " << task->batch_id << std::endl;
+  }
+  file.close();
+}
+
 // Output the schedule on YAML format per agent per timestep
 void MinimumSolver::outputScheduleCommon(const std::string& output_file,
                                          int agents)
@@ -760,6 +775,15 @@ void MinimumSolver::outputScheduleCommon(const std::string& output_file,
       file << "      t: " << t << std::endl;
     }
   }
+  file.close();
+}
+
+void MinimumSolver::outputTasksCommon(const std::string& output_file)
+{
+  std::fstream file;
+  file.open(output_file, std::fstream::out);
+  file << "tasks:" << std::endl;
+
   file.close();
 }
 

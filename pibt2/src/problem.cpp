@@ -450,7 +450,7 @@ void MAPD_Instance::read_task_file(bool is_batched)
       // Read the batch id
       if (is_batched) {
         file >> value;
-        int batch_id = stoi(value);
+        batch_id = stoi(value);
 
         // Create batch if it doesn't exist
         if (batch_id > current_batch) {
