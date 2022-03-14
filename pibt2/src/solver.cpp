@@ -691,9 +691,33 @@ void MAPD_Solver::makeLog(const std::string& logfile)
   log.open(logfile, std::ios::out);
   makeLogBasicInfo(log);
   makeLogSolution(log);
-  outputSchedule();
-  outputTasks();
   log.close();
+
+  Grid* grid = reinterpret_cast<Grid*>(P->getG());
+  std::string task = P->get_task_name();
+  std::string map = grid->getMapFileName();
+  // Get the filenames for output
+  char* mapptr = new char[map.size() + 1];
+  strcpy(mapptr, map.c_str());
+  char* ptr = strtok(mapptr, "/");
+  std::string latestMap = "";
+  std::string latestTask = "";
+  while (ptr != NULL) {
+    latestMap = std::string(ptr);
+    ptr = strtok(NULL, "/");
+  }
+
+  char* taskptr = new char[task.size() + 1];
+  strcpy(taskptr, task.c_str());
+  ptr = strtok(taskptr, "/");
+  while (ptr != NULL) {
+    latestTask = std::string(ptr);
+    ptr = strtok(NULL, "/");
+  }
+
+  outputSchedule("./output/output-" + latestMap + "--" + latestTask + ".yaml");
+  outputTasks("./output/task_output-" + latestMap + "--" + latestTask +
+              ".yaml");
 }
 
 void MAPD_Solver::makeLogBasicInfo(std::ofstream& log)

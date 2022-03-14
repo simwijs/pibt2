@@ -133,6 +133,7 @@ public:
   int getCurrentTimestep() const { return current_timestep; }
   float getTaskFrequency() const { return task_frequency; }
   float getTaskNum() const { return task_num; }
+  std::string get_task_name() const { return task_file;}
   Tasks getOpenTasks() { return TASKS_OPEN; }
   Tasks getClosedTasks() { return TASKS_CLOSED; }
   Nodes getEndpoints() { return LOCATIONS; }
