@@ -41,12 +41,12 @@ void PIBT_MAPD::run()
   }
   solution.add(P->getConfigStart());
 
-  auto assign = [&](Agent* a, Task* task) {
+  auto assign = [&](Agent* a, Task* task, int delay=0) {
     a->task = task;
     a->target_task = nullptr;
     a->task->assigned = true;
     a->g = task->loc_delivery;  // update destination
-    task->timestep_started = P->getCurrentTimestep();
+    task->timestep_started = P->getCurrentTimestep() + delay;
     info("   ", "assign task-", a->task->id, ": agent-", a->id, ", ",
          a->task->loc_pickup->id, " -> ", a->task->loc_delivery->id);
   };
@@ -94,7 +94,7 @@ void PIBT_MAPD::run()
           int d = pathDist(a->v_now, task->loc_pickup);
           if (d == 0) {
             // special case, assign task directly
-            assign(a, task);
+            assign(a, task, -1);
             unassigned_tasks.erase(itr);  // remove from unassigned_tasks
             break;
           }
