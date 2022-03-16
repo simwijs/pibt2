@@ -634,54 +634,21 @@ double MAPD_Solver::getMaxBatchServiceTime()
 
 void MAPD_Solver::printResult()
 {
-  // std::cout << "solved=" << solved << ", solver=" << std::right <<
-  // std::setw(8)
-  //           << solver_name << ", comp_time(ms)=" << std::right <<
-  //           std::setw(8)
-  //           << getCompTime() << " (pre=" << std::right << std::setw(8)
-  //           << preprocessing_comp_time << ")"
-  //           << ", makespan=" << std::right << std::setw(4)
-  //           << solution.getMakespan() << ", service time (ave)=" <<
-  //           std::right
-  //           << std::setw(6) << getAverageServiceTime() << std::endl;
-  std::fstream file;
-  file.open("instances_summary.txt", std::fstream::in | std::fstream::app);
-
-  if (file.peek() == std::ifstream::traits_type::eof()) {
-    file << "Map;Task;Nb_Agent;Nb_Task;Makespan;Computation_Time;Average_"
-            "Service_Time;Used_Solver;solved;preprocessing_comp_time;;;;;;;";
-  }
   Grid* grid = reinterpret_cast<Grid*>(P->getG());
-  file << grid->getMapFileName() << ";";
-  // file << "instance=" << P->getInstanceFileName() << ";";
-  file << P->getNum() << ";";  // agents
-  file << P->getTaskNum() << ";";
-  file << solution.getMakespan() << ";";
-  file << getCompTime() << ";";
-  file << getAverageServiceTime() << ";";
-  file << getAverageBatchServiceTime() << ";";
-  file << getMinBatchServiceTime() << ";";
-  file << getMaxBatchServiceTime() << ";";
-  file << "solver=" << solver_name << ";";
-  file << "solved=" << solved << ";";
-  file << "preprocessing_comp_time=" << preprocessing_comp_time << ";";
 
-  file << std::endl;
-  file.close();
-
-  std::cout << grid->getMapFileName() << ";";
-  // file << "instance=" << P->getInstanceFileName() << ";";
-  std::cout << P->getNum() << ";";  // agents
-  std::cout << P->getTaskNum() << ";";
-  std::cout << solution.getMakespan() << ";";
-  std::cout << getCompTime() << ";";
-  std::cout << getAverageServiceTime() << ";";
-  std::cout << getAverageBatchServiceTime() << ";";
-  std::cout << getMinBatchServiceTime() << ";";
-  std::cout << getMaxBatchServiceTime() << ";";
-  std::cout << "solver=" << solver_name << ";";
-  std::cout << "solved=" << solved << ";";
-  std::cout << "preprocessing_comp_time=" << preprocessing_comp_time << ";";
+  std::cout << grid->getMapFileName() << ",";
+  std::cout << P->getTaskName() << ",";
+  std::cout << P->getNum() << ",";  // agents
+  std::cout << P->getTaskNum() << ",";
+  std::cout << solution.getMakespan() << ",";
+  std::cout << getAverageServiceTime() << ",";
+  std::cout << getAverageBatchServiceTime() << ",";
+  std::cout << getMinBatchServiceTime() << ",";
+  std::cout << getMaxBatchServiceTime() << ",";
+  std::cout << std::setprecision(10) << getCompTime() << ",";
+  // std::cout << "solver=" << solver_name << ";";
+  // std::cout << "solved=" << solved << ";";
+  // std::cout << "preprocessing_comp_time=" << preprocessing_comp_time << ";";
   std::cout << std::endl;
 }
 
@@ -694,7 +661,7 @@ void MAPD_Solver::makeLog(const std::string& logfile)
   log.close();
 
   Grid* grid = reinterpret_cast<Grid*>(P->getG());
-  std::string task = P->get_task_name();
+  std::string task = P->getTaskName();
   std::string map = grid->getMapFileName();
   // Get the filenames for output
   char* mapptr = new char[map.size() + 1];
@@ -723,7 +690,7 @@ void MAPD_Solver::makeLog(const std::string& logfile)
 void MAPD_Solver::makeLogBasicInfo(std::ofstream& log)
 {
   Grid* grid = reinterpret_cast<Grid*>(P->getG());
-  log << "instance=" << P->getInstanceFileName() << "\n";
+  log << "instance=" << P->getTaskName() << "\n";
   log << "agents=" << P->getNum() << "\n";
   log << "map_file=" << grid->getMapFileName() << "\n";
   log << "solver=" << solver_name << "\n";
