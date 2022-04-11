@@ -1,6 +1,15 @@
 #pragma once
 #include "solver.hpp"
-
+struct Agent {
+  int id;
+  Node* v_now;        // current location
+  Node* v_next;       // next location
+  Node* g;            // goal
+  int elapsed;        // eta
+  float tie_breaker;  // epsilon, tie-breaker
+  Task* task;
+  Task* target_task;
+};
 class PIBT_MAPD : public MAPD_Solver
 {
 public:
@@ -8,16 +17,7 @@ public:
 
 private:
   // PIBT agent
-  struct Agent {
-    int id;
-    Node* v_now;        // current location
-    Node* v_next;       // next location
-    Node* g;            // goal
-    int elapsed;        // eta
-    float tie_breaker;  // epsilon, tie-breaker
-    Task* task;
-    Task* target_task;
-  };
+
   using Agents = std::vector<Agent*>;
 
   // <node-id, agent>, whether the node is occupied or not

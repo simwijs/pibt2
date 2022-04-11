@@ -1,13 +1,16 @@
 #pragma once
+#include <cassert>
 #include <graph.hpp>
+#include <queue>
 #include <random>
 
 #include "default_params.hpp"
 #include "task.hpp"
 #include "util.hpp"
-
 using Config = std::vector<Node*>;  // < loc_0[t], loc_1[t], ... >
 using Configs = std::vector<Config>;
+
+using pq = std::priority_queue<Task>;
 
 // check two configurations are same or not
 [[maybe_unused]] static bool sameConfig(const Config& config_i,
@@ -96,6 +99,53 @@ public:
 
 class MAPD_Instance : public Problem
 {
+public:
+  MAPD_Instance(const std::string& _task_file,                    // Simon #6
+                const std::string& _map_file,                     // #11
+                const bool _is_batched, const bool _batch_prio);  // #11
+  ~MAPD_Instance();
+  bool batch_prio;
+  void update();
+  int getCurrentTimestep() const { return current_timestep; }
+  float getTaskFrequency() const { return task_frequency; }
+  float getTaskNum() const { return task_num; }
+  std::string getTaskName() const { return task_file; }
+  Tasks getOpenTasks() { return TASKS_OPEN; }
+  Tasks getClosedTasks() { return TASKS_CLOSED; }
+  Nodes getEndpoints() { return LOCATIONS; }
+  Batches getBatches() { return batches; }
+
+  struct CompareTask {
+    MAPD_Instance* instance;
+    CompareTask(MAPD_Instance* instance) : instance(instance) {}
+    bool operator()(Task* t1, Task* t2)
+    {
+      // Current service times
+      int t1_st = instance->current_timestep - t1->timestep_appear;
+      if (t1_st < 0) t1_st = 0;
+      int t2_st = instance->current_timestep - t2->timestep_appear;
+      if (t2_st < 0) t2_st = 0;
+
+      // Batch index order error BLE
+      int t1_ble = instance->current_batch_index - t1->batch_id;
+      int t2_ble = instance->current_batch_index - t2->batch_id;
+      if (t1_ble < 0) t1_ble = 0;
+      if (t2_ble < 0) t2_ble = 0;
+
+      // Batch order weighted error
+      int t1_bowe = (t1_ble + 1) * t1_st;
+      int t2_bowe = (t2_ble + 1) * t2_st;
+
+      if (t1->batch_id == t2->batch_id) {
+        // Same batch
+        return false;
+      } else {
+        return t1_bowe < t2_bowe;
+      }
+    };
+  };
+  std::priority_queue<Task*, Tasks, CompareTask> getHeap() { return pq_tasks; }
+
 private:
   float task_frequency;
   int task_num;
@@ -104,13 +154,19 @@ private:
   std::string map_file;
   bool is_batched;
 
-  int current_timestep;  // current timestep
+  int current_timestep;         // current timestep
+  int current_batch_index = 0;  // Increased whenever a batch is finished
   Tasks TASKS_OPEN;
   Tasks TASKS_CLOSED;
   Batches batches;
+  std::vector<int> finished_batches;
   // Simon #6
   TimedTasks TASKS_SCHEDULED;  // Tasks indexed by timestep
   Tasks TASKS;                 // All tasks
+
+  std::priority_queue<Task*, Tasks,
+                      CompareTask>
+      pq_tasks;  // Priority queue for choosing task
 
   Nodes LOCS_PICKUP;             // candidates of pickup locations
   Nodes LOCS_DELIVERY;           // candidates of delivery locations
@@ -122,20 +178,4 @@ private:
   void read_task_file(bool is_batched);
   void read_map_file();
   Node* get_endpoint_node_from_int(int num);
-
-public:
-  MAPD_Instance(const std::string& _task_file,  // Simon #6
-                const std::string& _map_file,   // #11
-                const bool _is_batched);        // #11
-  ~MAPD_Instance();
-
-  void update();
-  int getCurrentTimestep() const { return current_timestep; }
-  float getTaskFrequency() const { return task_frequency; }
-  float getTaskNum() const { return task_num; }
-  std::string getTaskName() const { return task_file; }
-  Tasks getOpenTasks() { return TASKS_OPEN; }
-  Tasks getClosedTasks() { return TASKS_CLOSED; }
-  Nodes getEndpoints() { return LOCATIONS; }
-  Batches getBatches() { return batches; }
 };

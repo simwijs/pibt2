@@ -39,10 +39,11 @@ int main(int argc, char* argv[])
   int max_comp_time = -1;
   bool use_distance_table = false;
   bool is_batched = false;
+  bool batch_prio = false;
   // command line args
   int opt, longindex;
   opterr = 0;  // ignore getopt error
-  while ((opt = getopt_long(argc, argv, "t:m:o:s:vhT:Ldb", longopts,
+  while ((opt = getopt_long(argc, argv, "t:m:o:s:vhT:Ldbp", longopts,
                             &longindex)) != -1) {
     switch (opt) {
       case 'o':
@@ -75,6 +76,9 @@ int main(int argc, char* argv[])
       case 'b':  // Simon #11
         is_batched = true;
         break;
+      case 'p':
+        batch_prio = true;
+        break;
       default:
         break;
     }
@@ -94,7 +98,7 @@ int main(int argc, char* argv[])
   }
 
   // set problem
-  auto P = MAPD_Instance(task_file, map_file, is_batched);
+  auto P = MAPD_Instance(task_file, map_file, is_batched, batch_prio);
 
   // set max computation time (otherwise, use param in instance_file)
   if (max_comp_time != -1) P.setMaxCompTime(max_comp_time);

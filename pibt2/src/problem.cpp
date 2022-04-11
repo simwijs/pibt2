@@ -1,5 +1,6 @@
 #include "../include/problem.hpp"
 
+#include <cassert>
 #include <fstream>
 #include <regex>
 
@@ -482,13 +483,15 @@ void MAPD_Instance::read_task_file(bool is_batched)
 // MAPD
 MAPD_Instance::MAPD_Instance(const std::string& _task_file,
                              const std::string& _map_file,
-                             const bool _is_batched)
+                             const bool _is_batched, const bool _batch_prio)
     : Problem(""),
       current_timestep(-1),
       specify_pickup_deliv_locs(true),
       task_file(_task_file),
       map_file(_map_file),
-      is_batched(_is_batched)
+      is_batched(_is_batched),
+      batch_prio(_batch_prio),
+      pq_tasks(CompareTask(this))
 {
   // Read map file
   read_map_file();
@@ -592,6 +595,16 @@ void MAPD_Instance::update()
     task->timestep_finished = current_timestep + 1;
     TASKS_CLOSED.push_back(task);
 
+        // Try finish batch
+    if (is_batched) {
+      Batch* b = batches.at(task->batch_id);
+      b->try_finish();
+      if (b->is_finished()) {
+        current_batch_index++;
+        finished_batches.push_back(b->id);
+      }
+    }
+
     // remove from OPEN list
     itr = TASKS_OPEN.erase(itr);
   }
@@ -602,6 +615,10 @@ void MAPD_Instance::update()
       task->timestep_appear = current_timestep + 1;  // It will be handled in
       // the next loop, hence +1
       TASKS_OPEN.push_back(task);
+
+      if (batch_prio) {
+        pq_tasks.push(task);
+      }
     }
   }
 

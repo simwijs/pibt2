@@ -1,5 +1,9 @@
 #include "../include/pibt_mapd.hpp"
 
+#include <queue>
+
+#include "../include/assignment.hpp"
+
 const std::string PIBT_MAPD::SOLVER_NAME = "PIBT";
 
 PIBT_MAPD::PIBT_MAPD(MAPD_Instance* _P, bool _use_distance_table)
@@ -19,6 +23,8 @@ void PIBT_MAPD::run()
 
     if (a->elapsed != b->elapsed) return a->elapsed > b->elapsed;
     // use initial distance
+    // TODO(simon): add the task cost to the tie breaker to prioritise long
+    // running batches/tasks
     return a->tie_breaker > b->tie_breaker;
   };
   Agents A;
@@ -41,7 +47,7 @@ void PIBT_MAPD::run()
   }
   solution.add(P->getConfigStart());
 
-  auto assign = [&](Agent* a, Task* task, int delay=0) {
+  auto assign = [&](Agent* a, Task* task, int delay = 0) {
     a->task = task;
     a->target_task = nullptr;
     a->task->assigned = true;
@@ -72,6 +78,14 @@ void PIBT_MAPD::run()
       // std::endl
       //           << std::flush;
 
+      // // Keep a priority queue per agent
+      // using pq = std::priority_queue<Task*, Tasks,
+      // MAPD_Instance::CompareTask>
+
+      // Build an assignment heap here for every unoccupied agent and task
+      // TOdo: If an agent does not hold a task, allow it to be reassigned a
+      // task Or just let an assigned agent be
+
       for (auto a : A) {
         // agent is already assigned task
         if (a->task != nullptr) {
@@ -86,7 +100,7 @@ void PIBT_MAPD::run()
         a->target_task = nullptr;
         a->g = a->v_now;
         int min_d = P->getG()->getNodesSize();
-
+        bool zero_dist = false;
         std::shuffle(unassigned_tasks.begin(), unassigned_tasks.end(), *MT);
         for (auto itr = unassigned_tasks.begin(); itr != unassigned_tasks.end();
              ++itr) {
@@ -96,15 +110,26 @@ void PIBT_MAPD::run()
             // special case, assign task directly
             assign(a, task, -1);
             unassigned_tasks.erase(itr);  // remove from unassigned_tasks
+            zero_dist = true;
             break;
           }
+
           // TODO(simon) this is maybe where we prioritise by arrivla time of
           // tasks
+          if (P->batch_prio) continue;
           if (d < min_d) {
             min_d = d;
             a->g = task->loc_pickup;
             a->target_task = task;
           }
+        }
+
+        // Get highest prio task
+        if (!zero_dist && P->batch_prio && unassigned_tasks.size() > 0) {
+          auto task = P->getHeap().top();
+          P->getHeap().pop();
+          a->g = task->loc_pickup;
+          a->target_task = task;
         }
 
         targets.push_back(a->g);
@@ -114,6 +139,8 @@ void PIBT_MAPD::run()
       hist_targets.push_back(targets);
       hist_tasks.push_back(tasks);
     }
+
+    // TODO: Assignment heap is built, now get the agents
 
     // planning
     {
@@ -170,7 +197,7 @@ void PIBT_MAPD::run()
     P->update();
 
     // failure
-    if (P->getCurrentTimestep() >= max_timestep || overCompTime()) {
+    if (P->getCurrentTimestep() >= max_timestep) {  //|| overCompTime()) {
       solved = false;
       break;
     }
