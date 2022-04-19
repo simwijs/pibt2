@@ -3,7 +3,9 @@
 #include <graph.hpp>
 #include <queue>
 #include <random>
+#include <unordered_set>
 
+#include "assignment.hpp"
 #include "default_params.hpp"
 #include "task.hpp"
 #include "util.hpp"
@@ -107,6 +109,7 @@ public:
   bool batch_prio;
   void update();
   int getCurrentTimestep() const { return current_timestep; }
+  int getCurrentBatchIndex() const { return current_batch_index; }
   float getTaskFrequency() const { return task_frequency; }
   float getTaskNum() const { return task_num; }
   std::string getTaskName() const { return task_file; }
@@ -114,6 +117,11 @@ public:
   Tasks getClosedTasks() { return TASKS_CLOSED; }
   Nodes getEndpoints() { return LOCATIONS; }
   Batches getBatches() { return batches; }
+
+  std::unordered_set<int> unfinished_tasks;
+  std::unordered_set<int> awaiting_tasks;
+  std::unordered_set<int> ongoing_tasks;
+  std::unordered_set<int> finished_tasks;
 
   struct CompareTask {
     MAPD_Instance* instance;
@@ -145,6 +153,10 @@ public:
     };
   };
   std::priority_queue<Task*, Tasks, CompareTask> getHeap() { return pq_tasks; }
+  std::vector<TaskAssignments*>& getTaskAssignments()
+  {
+    return taskAssignmentsPerAgent;
+  }
 
 private:
   float task_frequency;
@@ -167,6 +179,9 @@ private:
   std::priority_queue<Task*, Tasks,
                       CompareTask>
       pq_tasks;  // Priority queue for choosing task
+
+  std::vector<TaskAssignments*>
+      taskAssignmentsPerAgent;  // Store taskAssignments per agent ID
 
   Nodes LOCS_PICKUP;             // candidates of pickup locations
   Nodes LOCS_DELIVERY;           // candidates of delivery locations

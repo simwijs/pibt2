@@ -56,6 +56,24 @@ void PIBT_MAPD::run()
     info("   ", "assign task-", a->task->id, ": agent-", a->id, ", ",
          a->task->loc_pickup->id, " -> ", a->task->loc_delivery->id);
   };
+
+  /** INITIALIZE HEAPS **/
+  if (P->batch_prio) {
+    std::cout << "Initializing heaps" << std::endl;
+    // TODO: Rrefactor to initializeAssignments method
+    // Create the task assignments per agent vector
+    P->getTaskAssignments().resize(A.size());
+    for (auto a : A) {
+      // Create task assignment
+      TaskAssignments* tas = new TaskAssignments();  // TODO: delete/cleanup
+      tas->current_batch_index = P->getCurrentBatchIndex();
+      tas->current_timestep = P->getCurrentTimestep();
+      P->getTaskAssignments()[a->id] = tas;
+      // Set taskassignments in instance
+    }
+    /** END INIT HEAPS **/
+  }
+
   // main loop
   while (true) {
     info(" ", "elapsed:", getSolverElapsedTime(),
@@ -63,7 +81,6 @@ void PIBT_MAPD::run()
          ", open_tasks:", P->getOpenTasks().size(),
          ", closed_tasks:", P->getClosedTasks().size(),
          ", task_num:", P->getTaskNum());
-
     // target assignment
     {
       Tasks unassigned_tasks;
@@ -76,15 +93,46 @@ void PIBT_MAPD::run()
       Tasks tasks;
       // std::cout << "Unassigned tasks: " << unassigned_tasks.size() <<
       // std::endl
-      //           << std::flush;
+      // << std::flush;
 
       // // Keep a priority queue per agent
       // using pq = std::priority_queue<Task*, Tasks,
       // MAPD_Instance::CompareTask>
 
+      // Clear the previous assignment heap. Can optimize somehow
+      for (auto a : A) {
+        if (!(P->getTaskAssignments()[a->id]->getHeap().size() > 0)) {
+          break;
+        }
+        TaskAssignment* ta = P->getTaskAssignments()[a->id]->getHeap().top();
+        P->getTaskAssignments()[a->id]->getHeap().pop();
+        delete ta;
+      }
+
       // Build an assignment heap here for every unoccupied agent and task
       // TOdo: If an agent does not hold a task, allow it to be reassigned a
       // task Or just let an assigned agent be
+      // BUILD ASSIGNMENT HEAP
+      // TODO: Move this after checking if agent is already assigned
+      // Idea: Use the sets for settings tasks in awaiting and to unassigned
+      // when put into heaps here
+      //      also sort out the tasks that have been assigned from the heaps
+      //      when using top()
+      if (P->batch_prio) {
+        std::cout << "Building heaps" << std::endl;
+        for (auto a : A) {
+          for (auto itr = unassigned_tasks.begin();
+               itr != unassigned_tasks.end(); ++itr) {
+            auto task = *itr;
+            int d = pathDist(a->v_now, task->loc_pickup);
+            TaskAssignment* ta = new TaskAssignment(*itr, a);
+            ta->distance = d;
+            // ta->current_timestep = P->getCurrentTimestep();
+            // ta->current_batch_index = P->getCurrentBatchIndex();
+            P->getTaskAssignments()[a->id]->getHeap().push(ta);
+          }
+        }
+      }
 
       for (auto a : A) {
         // agent is already assigned task
@@ -93,9 +141,31 @@ void PIBT_MAPD::run()
           tasks.push_back(a->task);
           continue;
         }
+        // TASK ASSIGNMENT IMPL
+        if (P->batch_prio && unassigned_tasks.size() > 0) {
+          TaskAssignment* ta = P->getTaskAssignments()[a->id]->getHeap().top();
+          P->getTaskAssignments()[a->id]->getHeap().pop();
+          // assign(ta->agent, ta->task);
+          a->g = ta->task->loc_pickup;
+          a->target_task = ta->task;
+
+          // Remove task TODO use sets instead?
+          for (auto itr = unassigned_tasks.begin();
+               itr != unassigned_tasks.end(); ++itr) {
+            auto task = *itr;
+            if (task->id == ta->task->id) {
+              unassigned_tasks.erase(itr);
+              break;
+            }
+          }
+          // end remove task
+          targets.push_back(a->g);
+          tasks.push_back(a->task);
+          continue;
+        }
+        // TASK ASSIGNMENT IMPL END
 
         // free agent, find min_distance pickup location
-
         // setup
         a->target_task = nullptr;
         a->g = a->v_now;
@@ -116,20 +186,14 @@ void PIBT_MAPD::run()
 
           // TODO(simon) this is maybe where we prioritise by arrivla time of
           // tasks
-          if (P->batch_prio) continue;
+          if (P->batch_prio) {
+            continue;
+          }
           if (d < min_d) {
             min_d = d;
             a->g = task->loc_pickup;
             a->target_task = task;
           }
-        }
-
-        // Get highest prio task
-        if (!zero_dist && P->batch_prio && unassigned_tasks.size() > 0) {
-          auto task = P->getHeap().top();
-          P->getHeap().pop();
-          a->g = task->loc_pickup;
-          a->target_task = task;
         }
 
         targets.push_back(a->g);
@@ -140,7 +204,8 @@ void PIBT_MAPD::run()
       hist_tasks.push_back(tasks);
     }
 
-    // TODO: Assignment heap is built, now get the agents
+    // TODO: Assignment heap is built, now get the agents, maybe modify the
+    // compare function below
 
     // planning
     {
