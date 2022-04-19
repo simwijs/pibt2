@@ -59,7 +59,7 @@ void PIBT_MAPD::run()
 
   /** INITIALIZE HEAPS **/
   if (P->batch_prio) {
-    std::cout << "Initializing heaps" << std::endl;
+    // std::cout << "Initializing heaps" << std::endl;
     // TODO: Rrefactor to initializeAssignments method
     // Create the task assignments per agent vector
     P->getTaskAssignments().resize(A.size());
@@ -84,8 +84,12 @@ void PIBT_MAPD::run()
     // target assignment
     {
       Tasks unassigned_tasks;
+      P->unassigned_tasks.clear();
       for (auto task : P->getOpenTasks()) {
-        if (!task->assigned) unassigned_tasks.push_back(task);
+        if (!task->assigned) {
+          unassigned_tasks.push_back(task);
+          P->unassigned_tasks.insert(task->id);
+        }
       }
 
       // for log
@@ -98,15 +102,22 @@ void PIBT_MAPD::run()
       // // Keep a priority queue per agent
       // using pq = std::priority_queue<Task*, Tasks,
       // MAPD_Instance::CompareTask>
-
-      // Clear the previous assignment heap. Can optimize somehow
-      for (auto a : A) {
-        if (!(P->getTaskAssignments()[a->id]->getHeap().size() > 0)) {
-          break;
+      if (P->batch_prio) {
+        // Clear the previous assignment heap. Can optimize somehow
+        for (auto a : A) {
+          // Update timestep and batch index
+          auto tas = P->getTaskAssignments()[a->id];
+          tas->current_batch_index = P->getCurrentBatchIndex();
+          tas->current_timestep = P->getCurrentTimestep();
+          if (!(tas->getHeap().size() > 0)) {
+            break;
+          }
+          while (tas->getHeap().size() > 0) {
+            TaskAssignment* ta = tas->getHeap().top();
+            tas->getHeap().pop();
+            delete ta;
+          }
         }
-        TaskAssignment* ta = P->getTaskAssignments()[a->id]->getHeap().top();
-        P->getTaskAssignments()[a->id]->getHeap().pop();
-        delete ta;
       }
 
       // Build an assignment heap here for every unoccupied agent and task
@@ -119,7 +130,7 @@ void PIBT_MAPD::run()
       //      also sort out the tasks that have been assigned from the heaps
       //      when using top()
       if (P->batch_prio) {
-        std::cout << "Building heaps" << std::endl;
+        // std::cout << "Building heaps" << std::endl;
         for (auto a : A) {
           for (auto itr = unassigned_tasks.begin();
                itr != unassigned_tasks.end(); ++itr) {
@@ -141,7 +152,28 @@ void PIBT_MAPD::run()
           tasks.push_back(a->task);
           continue;
         }
-        // TASK ASSIGNMENT IMPL
+
+        // IF an agent is chasing a task that is assigned, reset it
+        if (P->batch_prio && a->target_task != nullptr) {
+          if (a->target_task->assigned) {
+            a->target_task = nullptr;
+            a->g = nullptr;
+          } else {
+            targets.push_back(a->g);
+            tasks.push_back(a->task);
+            continue;  // Keep chasing it
+          }
+          // if (P->unassigned_tasks.find(a->target_task) ==
+          //     P->unassigned_tasks.end()) {
+          //   a->target_task = nullptr;
+          //   a->g = nullptr;
+          // }
+        }
+        // Free agent
+        a->target_task = nullptr;
+        a->g = a->v_now;
+
+        // target if the task is still unassigned TASK ASSIGNMENT IMPL
         if (P->batch_prio && unassigned_tasks.size() > 0) {
           TaskAssignment* ta = P->getTaskAssignments()[a->id]->getHeap().top();
           P->getTaskAssignments()[a->id]->getHeap().pop();
@@ -150,49 +182,40 @@ void PIBT_MAPD::run()
           a->target_task = ta->task;
 
           // Remove task TODO use sets instead?
-          for (auto itr = unassigned_tasks.begin();
-               itr != unassigned_tasks.end(); ++itr) {
-            auto task = *itr;
-            if (task->id == ta->task->id) {
-              unassigned_tasks.erase(itr);
-              break;
-            }
-          }
+          // for (auto itr = unassigned_tasks.begin();
+          //      itr != unassigned_tasks.end(); ++itr) {
+          //   auto task = *itr;
+          //   if (task->id == ta->task->id) {
+          //     unassigned_tasks.erase(itr);
+          //     break;
+          //   }
+          // }
           // end remove task
-          targets.push_back(a->g);
-          tasks.push_back(a->task);
-          continue;
+          // targets.push_back(a->g);
+          // tasks.push_back(a->task);
         }
         // TASK ASSIGNMENT IMPL END
 
         // free agent, find min_distance pickup location
         // setup
-        a->target_task = nullptr;
-        a->g = a->v_now;
-        int min_d = P->getG()->getNodesSize();
-        bool zero_dist = false;
-        std::shuffle(unassigned_tasks.begin(), unassigned_tasks.end(), *MT);
-        for (auto itr = unassigned_tasks.begin(); itr != unassigned_tasks.end();
-             ++itr) {
-          auto task = *itr;
-          int d = pathDist(a->v_now, task->loc_pickup);
-          if (d == 0) {
-            // special case, assign task directly
-            assign(a, task, -1);
-            unassigned_tasks.erase(itr);  // remove from unassigned_tasks
-            zero_dist = true;
-            break;
-          }
-
-          // TODO(simon) this is maybe where we prioritise by arrivla time of
-          // tasks
-          if (P->batch_prio) {
-            continue;
-          }
-          if (d < min_d) {
-            min_d = d;
-            a->g = task->loc_pickup;
-            a->target_task = task;
+        if (!P->batch_prio) {
+          int min_d = P->getG()->getNodesSize();
+          std::shuffle(unassigned_tasks.begin(), unassigned_tasks.end(), *MT);
+          for (auto itr = unassigned_tasks.begin();
+               itr != unassigned_tasks.end(); ++itr) {
+            auto task = *itr;
+            int d = pathDist(a->v_now, task->loc_pickup);
+            if (d == 0) {
+              // special case, assign task directly
+              assign(a, task, -1);
+              unassigned_tasks.erase(itr);  // remove from unassigned_tasks
+              break;
+            }
+            if (d < min_d) {
+              min_d = d;
+              a->g = task->loc_pickup;
+              a->target_task = task;
+            }
           }
         }
 

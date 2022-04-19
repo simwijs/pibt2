@@ -1,5 +1,6 @@
 #pragma once
 #include <queue>
+#include <set>
 
 #include "agent.hpp"
 #include "task.hpp"
@@ -51,7 +52,9 @@ public:
 class TaskAssignments
 {
 public:
-  TaskAssignments() : pq_assignments(CompareAssignments(this)){};
+  TaskAssignments()
+      : pq_assignments(CompareAssignments(this)),
+        set_assignments(CompareAssignments(this)){};
 
   int current_timestep = -1;
   int current_batch_index = -1;
@@ -82,7 +85,9 @@ public:
         // Same batch
         return false;
       } else {
-        return t1_bowe < t2_bowe;
+        int d1 = t1->distance + 1;
+        int d2 = t2->distance + 1;
+        return t1_bowe / d1 < t2_bowe / d2;
       }
     }
   };
@@ -94,9 +99,15 @@ public:
     return pq_assignments;
   }
 
+  std::set<TaskAssignment*, CompareAssignments>& getSet()
+  {
+    return set_assignments;
+  }
+
 private:
   // MAPD_Instance* _instance;
   std::priority_queue<TaskAssignment*, std::vector<TaskAssignment*>,
                       CompareAssignments>
       pq_assignments;
+  std::set<TaskAssignment*, CompareAssignments> set_assignments;
 };

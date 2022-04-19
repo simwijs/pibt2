@@ -119,40 +119,10 @@ public:
   Batches getBatches() { return batches; }
 
   std::unordered_set<int> unfinished_tasks;
+  std::unordered_set<int> unassigned_tasks;
   std::unordered_set<int> awaiting_tasks;
   std::unordered_set<int> ongoing_tasks;
   std::unordered_set<int> finished_tasks;
-
-  struct CompareTask {
-    MAPD_Instance* instance;
-    CompareTask(MAPD_Instance* instance) : instance(instance) {}
-    bool operator()(Task* t1, Task* t2)
-    {
-      // Current service times
-      int t1_st = instance->current_timestep - t1->timestep_appear;
-      if (t1_st < 0) t1_st = 0;
-      int t2_st = instance->current_timestep - t2->timestep_appear;
-      if (t2_st < 0) t2_st = 0;
-
-      // Batch index order error BLE
-      int t1_ble = instance->current_batch_index - t1->batch_id;
-      int t2_ble = instance->current_batch_index - t2->batch_id;
-      if (t1_ble < 0) t1_ble = 0;
-      if (t2_ble < 0) t2_ble = 0;
-
-      // Batch order weighted error
-      int t1_bowe = (t1_ble + 1) * t1_st;
-      int t2_bowe = (t2_ble + 1) * t2_st;
-
-      if (t1->batch_id == t2->batch_id) {
-        // Same batch
-        return false;
-      } else {
-        return t1_bowe < t2_bowe;
-      }
-    };
-  };
-  std::priority_queue<Task*, Tasks, CompareTask> getHeap() { return pq_tasks; }
   std::vector<TaskAssignments*>& getTaskAssignments()
   {
     return taskAssignmentsPerAgent;
@@ -175,10 +145,6 @@ private:
   // Simon #6
   TimedTasks TASKS_SCHEDULED;  // Tasks indexed by timestep
   Tasks TASKS;                 // All tasks
-
-  std::priority_queue<Task*, Tasks,
-                      CompareTask>
-      pq_tasks;  // Priority queue for choosing task
 
   std::vector<TaskAssignments*>
       taskAssignmentsPerAgent;  // Store taskAssignments per agent ID
