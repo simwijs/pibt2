@@ -61,6 +61,9 @@ public:
           int _max_comp_time);
   ~Problem(){};
 
+  int opt_variant;
+  int opt_constant;
+
   Graph* getG() { return G; }
   int getNum() { return num_agents; }
   std::mt19937* getMT() { return MT; }

@@ -68,6 +68,8 @@ void PIBT_MAPD::run()
       TaskAssignments* tas = new TaskAssignments();  // TODO: delete/cleanup
       tas->current_batch_index = P->getCurrentBatchIndex();
       tas->current_timestep = P->getCurrentTimestep();
+      tas->opt_variant = P->opt_variant;
+      tas->opt_constant = P->opt_constant;
       P->getTaskAssignments()[a->id] = tas;
       // Set taskassignments in instance
     }

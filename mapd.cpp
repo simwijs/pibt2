@@ -33,6 +33,9 @@ int main(int argc, char* argv[])
       {"time-limit", required_argument, 0, 'T'},
       {"log-short", no_argument, 0, 'L'},
       {"use-distance-table", no_argument, 0, 'd'},
+      {"batch-prio", no_argument, 0, 'p'},
+      {"opt-variant", no_argument, 0, 'c'},
+      {"opt-constant", no_argument, 0, 'k'},
       {0, 0, 0, 0},
   };
   bool log_short = false;
@@ -40,10 +43,12 @@ int main(int argc, char* argv[])
   bool use_distance_table = false;
   bool is_batched = false;
   bool batch_prio = false;
+  int opt_variant = 0;
+  int opt_constant = 0;
   // command line args
   int opt, longindex;
   opterr = 0;  // ignore getopt error
-  while ((opt = getopt_long(argc, argv, "t:m:o:s:vhT:Ldbp", longopts,
+  while ((opt = getopt_long(argc, argv, "t:m:o:s:vhT:Ldbpc:k:", longopts,
                             &longindex)) != -1) {
     switch (opt) {
       case 'o':
@@ -79,6 +84,12 @@ int main(int argc, char* argv[])
       case 'p':
         batch_prio = true;
         break;
+      case 'c':
+        opt_variant = std::atoi(optarg);
+        break;
+      case 'k':
+        opt_constant = std::atoi(optarg);
+        break;
       default:
         break;
     }
@@ -99,6 +110,8 @@ int main(int argc, char* argv[])
 
   // set problem
   auto P = MAPD_Instance(task_file, map_file, is_batched, batch_prio);
+  P.opt_variant = opt_variant;
+  P.opt_constant = opt_constant;
 
   // set max computation time (otherwise, use param in instance_file)
   if (max_comp_time != -1) P.setMaxCompTime(max_comp_time);

@@ -58,6 +58,7 @@ public:
 
   int current_timestep = -1;
   int current_batch_index = -1;
+  int opt_variant, opt_constant;
 
   struct CompareAssignments {
     TaskAssignments* instance;
@@ -87,7 +88,27 @@ public:
       } else {
         int d1 = t1->distance + 1;
         int d2 = t2->distance + 1;
-        return t1_bowe / d1 < t2_bowe / d2;
+        switch (instance->opt_variant) {
+          case 1:
+            return t1_bowe / (d1 + instance->opt_constant) <
+                   t2_bowe / (d2 + instance->opt_constant);
+            break;
+          case 2:
+            return (t1_bowe + instance->opt_constant) / d1 <
+                   (t2_bowe + instance->opt_constant) / d2;
+            break;
+          case 3:
+            return t1_bowe / (d1 / instance->opt_constant + 1) <
+                   t2_bowe / (d2 / instance->opt_constant + 1);
+            break;
+          case 4:
+            return (t1_bowe / instance->opt_constant) / d1 <
+                   (t2_bowe / instance->opt_constant) / d2;
+            break;
+          default:
+            return false;
+            break;
+        }
       }
     }
   };
