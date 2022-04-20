@@ -30,7 +30,11 @@ private:
 
   // result of priority inheritance: true -> valid, false -> invalid
   bool funcPIBT(Agent* ai, Agent* aj = nullptr);
+  void clearMemory(Agents& A);
 
+  void initializeAssignmentHeaps(Agents& A);
+  void initializeAssignments(Agents& A);
+  void buildAssignmentHeaps(Agents& A, Tasks& unassigned);
   // main
   void run();
 
