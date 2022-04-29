@@ -600,8 +600,9 @@ float MAPD_Solver::getAverageServiceTime()
 double MAPD_Solver::getAverageBatchServiceTime()
 {
   int total = 0;
-  int size = P->getBatches().size();
-  for (auto b : P->getBatches()) {
+  int size = P->getFinishedBatches().size();
+  for (auto b : P->getFinishedBatches()) {
+    // Get a rolling batch service time
     total += b->get_service_time();
   }
 
@@ -611,7 +612,7 @@ double MAPD_Solver::getAverageBatchServiceTime()
 double MAPD_Solver::getMinBatchServiceTime()
 {
   int min = INT_MAX;
-  for (auto b : P->getBatches()) {
+  for (auto b : P->getFinishedBatches()) {
     int st = b->get_service_time();
     if (st < min) {
       min = st;
@@ -623,7 +624,7 @@ double MAPD_Solver::getMinBatchServiceTime()
 double MAPD_Solver::getMaxBatchServiceTime()
 {
   int max = 0;
-  for (auto b : P->getBatches()) {
+  for (auto b : P->getFinishedBatches()) {
     int st = b->get_service_time();
     if (st > max) {
       max = st;
@@ -632,10 +633,50 @@ double MAPD_Solver::getMaxBatchServiceTime()
   return max;
 }
 
+/**
+ * @brief Gets the average BLE (rolling)
+ *
+ * @return double
+ */
+double MAPD_Solver::getAverageBLE()
+{
+  int total_ble = 0;
+  for (auto b : P->getFinishedBatches()) {
+    total_ble += b->ble;
+  }
+  double able = total_ble / (double)P->getFinishedBatches().size();
+  return able;
+}
+/**
+ * @brief Gets a rolling (or the final) BOWE
+ *
+ * @return double Bowe
+ */
+double MAPD_Solver::getBowe()
+{
+  double bst = getAverageBatchServiceTime();
+  double ble = getAverageBLE();
+  return (ble + 1) * bst;
+}
+/**
+ * @brief Gets the total BLE (rolling)
+ *
+ * @return double
+ */
+double MAPD_Solver::getTotalBLE()
+{
+  int total_ble = 0;
+  for (auto b : P->getFinishedBatches()) {
+    total_ble += b->ble;
+  }
+  return total_ble;
+}
+
 void MAPD_Solver::printResult()
 {
   Grid* grid = reinterpret_cast<Grid*>(P->getG());
-
+  // Output headers:
+  // map,task,agents,tasks,makespan,service_time,batch_service_time,min_batch_service_time,max_batch_service_time,computation_time,total_ble,avg_ble,bowe,finished_batches,finished_tasks
   std::cout << grid->getMapFileName() << ",";
   std::cout << P->getTaskName() << ",";
   std::cout << P->getNum() << ",";  // agents
@@ -646,9 +687,11 @@ void MAPD_Solver::printResult()
   std::cout << getMinBatchServiceTime() << ",";
   std::cout << getMaxBatchServiceTime() << ",";
   std::cout << std::setprecision(10) << getCompTime() << ",";
-  // std::cout << "solver=" << solver_name << ";";
-  // std::cout << "solved=" << solved << ";";
-  // std::cout << "preprocessing_comp_time=" << preprocessing_comp_time << ";";
+  std::cout << getTotalBLE() << ",";
+  std::cout << getAverageBLE() << ",";
+  std::cout << getBowe() << ",";
+  std::cout << P->getFinishedBatches().size() << ",";
+  std::cout << P->getClosedTasks().size();
   std::cout << std::endl;
 }
 

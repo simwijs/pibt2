@@ -44,7 +44,7 @@ int main(int argc, char* argv[])
   bool is_batched = false;
   bool batch_prio = false;
   int opt_variant = 0;
-  int opt_constant = 0;
+  float opt_constant = 0;
   // command line args
   int opt, longindex;
   opterr = 0;  // ignore getopt error
@@ -88,7 +88,7 @@ int main(int argc, char* argv[])
         opt_variant = std::atoi(optarg);
         break;
       case 'k':
-        opt_constant = std::atoi(optarg);
+        opt_constant = std::atof(optarg);
         break;
       default:
         break;

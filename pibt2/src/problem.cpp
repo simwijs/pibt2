@@ -599,8 +599,10 @@ void MAPD_Instance::update()
       Batch* b = batches.at(task->batch_id);
       b->try_finish();
       if (b->is_finished()) {
+        b->ble = current_batch_index - b->id;
+        if (b->ble < 0) b->ble = 0;
         current_batch_index++;
-        finished_batches.push_back(b->id);
+        finished_batches.push_back(b);
       }
     }
 

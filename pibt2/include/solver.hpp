@@ -283,6 +283,9 @@ public:
   double getAverageBatchServiceTime();
   double getMaxBatchServiceTime();
   double getMinBatchServiceTime();
+  double getBowe();
+  double getAverageBLE();
+  double getTotalBLE();
 
   // -------------------------------
   // main

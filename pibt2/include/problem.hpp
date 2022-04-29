@@ -62,7 +62,7 @@ public:
   ~Problem(){};
 
   int opt_variant;
-  int opt_constant;
+  float opt_constant;
 
   Graph* getG() { return G; }
   int getNum() { return num_agents; }
@@ -120,6 +120,8 @@ public:
   Tasks getClosedTasks() { return TASKS_CLOSED; }
   Nodes getEndpoints() { return LOCATIONS; }
   Batches getBatches() { return batches; }
+  Batch* getBatch(int bid) { return batches[bid]; }
+  Batches getFinishedBatches() { return finished_batches; }
 
   std::unordered_set<int> unfinished_tasks;
   std::unordered_set<int> unassigned_tasks;
@@ -144,7 +146,7 @@ private:
   Tasks TASKS_OPEN;
   Tasks TASKS_CLOSED;
   Batches batches;
-  std::vector<int> finished_batches;
+  Batches finished_batches;
   // Simon #6
   TimedTasks TASKS_SCHEDULED;  // Tasks indexed by timestep
   Tasks TASKS;                 // All tasks

@@ -42,7 +42,7 @@ using Tasks = std::vector<Task*>;
 using TimedTasks = std::vector<Tasks>;  // Simon #6
 
 struct Batch {
-  int id, timestep_appear, timestep_finished;
+  int id, timestep_appear, timestep_finished, ble;
   Tasks tasks;
 
   Batch(int id) : id(id), timestep_appear(-1), timestep_finished(-1){};
