@@ -692,6 +692,7 @@ void MAPD_Solver::printResult()
   std::cout << getBowe() << ",";
   std::cout << P->getFinishedBatches().size() << ",";
   std::cout << P->getClosedTasks().size();
+  std::cout << P->opt_constant;
   std::cout << std::endl;
 }
 
