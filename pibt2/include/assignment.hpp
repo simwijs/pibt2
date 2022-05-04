@@ -129,6 +129,23 @@ public:
             prio1 = d1 / (t1_bowe + 1);
             prio2 = d2 / (t2_bowe + 1);
             break;
+          case 9:
+            prio1 = d1 * K - (1 - K) * t1_bowe;
+            prio2 = d2 * K - (1 - K) * t2_bowe;
+            break;
+          case 10:
+            // Quite good
+            prio1 = ((1 - K) * t1_bowe) / (K * d1 + 1);
+            prio2 = ((1 - K) * t2_bowe) / (K * d2 + 1);
+            break;
+          case 11:
+            prio1 = ((1 - K) * t1_bowe + 1) / (K * d1 + 1);
+            prio2 = ((1 - K) * t2_bowe + 1) / (K * d2 + 1);
+            break;
+          case 12:
+            prio1 = (K * t1_bowe + 1) / (K + d1);
+            prio2 = (K * t2_bowe + 1) / (K + d2);
+            break;
           default:
             return false;
             break;
