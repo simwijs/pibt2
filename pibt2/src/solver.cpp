@@ -534,7 +534,7 @@ MAPD_Solver::MAPD_Solver(MAPD_Instance* _P, bool _use_distance_table)
 {
 }
 
-MAPD_Solver::~MAPD_Solver() {}
+MAPD_Solver::~MAPD_Solver() { rolling_output_file.close(); }
 
 void MAPD_Solver::solve()
 {
@@ -585,7 +585,7 @@ void MAPD_Solver::createDistanceTable()
 
 float MAPD_Solver::getTotalServiceTime()
 {
-  if (!solved) return false;
+  // if (!solved) return false;
   auto tasks = P->getClosedTasks();
   return std::accumulate(tasks.begin(), tasks.end(), 0, [](float acc, Task* a) {
     return acc + a->timestep_finished - a->timestep_appear;
@@ -594,6 +594,7 @@ float MAPD_Solver::getTotalServiceTime()
 
 float MAPD_Solver::getAverageServiceTime()
 {
+  if (P->getClosedTasks().size() == 0) return 0;
   return getTotalServiceTime() / P->getClosedTasks().size();
 }
 
@@ -605,12 +606,14 @@ double MAPD_Solver::getAverageBatchServiceTime()
     // Get a rolling batch service time
     total += b->get_service_time();
   }
+  if (size == 0) return 0;
 
   return total / (double)size;
 }
 
 double MAPD_Solver::getMinBatchServiceTime()
 {
+  if (P->getFinishedBatches().size() == 0) return 0;
   int min = INT_MAX;
   for (auto b : P->getFinishedBatches()) {
     int st = b->get_service_time();
@@ -640,6 +643,7 @@ double MAPD_Solver::getMaxBatchServiceTime()
  */
 double MAPD_Solver::getAverageBLE()
 {
+  if (P->getFinishedBatches().size() == 0) return 0;
   int total_ble = 0;
   for (auto b : P->getFinishedBatches()) {
     total_ble += b->ble;
@@ -694,6 +698,30 @@ void MAPD_Solver::printResult()
   std::cout << P->getClosedTasks().size() << ",";
   std::cout << P->opt_constant;
   std::cout << std::endl;
+}
+
+void MAPD_Solver::outputResultRolling()
+{
+  if (!rolling_output) {
+    return;
+  }
+  Grid* grid = reinterpret_cast<Grid*>(P->getG());
+  // Output headers:
+  // timestep,service_time,batch_service_time,min_batch_service_time,max_batch_service_time,computation_time,total_ble,avg_ble,bowe,finished_batches,finished_tasks
+  rolling_output_file << solution.getMakespan() << ",";
+  rolling_output_file << getAverageServiceTime() << ",";
+  rolling_output_file << getAverageBatchServiceTime() << ",";
+  rolling_output_file << getMinBatchServiceTime() << ",";
+  rolling_output_file << getMaxBatchServiceTime() << ",";
+  rolling_output_file << std::setprecision(10) << getSolverElapsedTime()
+                      << ",";  // Comp time
+  rolling_output_file << getTotalBLE() << ",";
+  rolling_output_file << getAverageBLE() << ",";
+  rolling_output_file << getBowe() << ",";
+  rolling_output_file << P->getFinishedBatches().size() << ",";
+  rolling_output_file << P->getClosedTasks().size();
+  // rolling_output_file << P->opt_constant;
+  rolling_output_file << std::endl;
 }
 
 void MAPD_Solver::makeLog(const std::string& logfile)

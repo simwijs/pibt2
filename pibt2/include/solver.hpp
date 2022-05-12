@@ -2,6 +2,7 @@
 #include <getopt.h>
 
 #include <chrono>
+#include <fstream>
 #include <functional>
 #include <memory>
 #include <queue>
@@ -30,12 +31,19 @@ private:
 protected:
   bool verbose;    // true -> print additional info
   bool log_short;  // true -> cannot visualize the result, default: false
+  std::fstream rolling_output_file;
+  bool rolling_output = false;
 
   // -------------------------------
   // utilities for time
 public:
   int getRemainedTime() const;  // get remained time
   bool overCompTime() const;    // check time limit
+  void setRolling(std::string rolling_file)
+  {
+    rolling_output_file.open(rolling_file, std::fstream::out);
+    rolling_output = true;
+  }
 
   // -------------------------------
   // utilities for debug
@@ -51,6 +59,8 @@ protected:
   }
   void halt(const std::string& msg) const;  // halt program
   void warn(const std::string& msg) const;  // just printing msg
+
+  void outputResultRolling();
 
   // -------------------------------
   // utilities for solver options
@@ -271,6 +281,7 @@ protected:
   using DistanceTable = std::vector<std::vector<int>>;  // [node_id][node_id]
   DistanceTable distance_table;                         // distance table
   int pathDist(Node* const s, Node* const g) const;
+  void outputResultRolling();
 
 private:
   void createDistanceTable();

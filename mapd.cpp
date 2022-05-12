@@ -1,6 +1,7 @@
 #include <getopt.h>
 
 #include <default_params.hpp>
+#include <fstream>
 #include <iostream>
 #include <pibt_mapd.hpp>
 #include <problem.hpp>
@@ -19,6 +20,7 @@ int main(int argc, char* argv[])
   std::string map_file = "";
   std::string output_file = DEFAULT_OUTPUT_FILE;
   std::string solver_name;
+  std::string rolling_file;
   bool verbose = false;
   char* argv_copy[argc + 1];
   for (int i = 0; i < argc; ++i) argv_copy[i] = argv[i];
@@ -36,6 +38,8 @@ int main(int argc, char* argv[])
       {"batch-prio", no_argument, 0, 'p'},
       {"opt-variant", no_argument, 0, 'c'},
       {"opt-constant", no_argument, 0, 'k'},
+      {"rolling-output", no_argument, 0,
+       'r'},  // Output rolling data every timestep
       {0, 0, 0, 0},
   };
   bool log_short = false;
@@ -43,12 +47,13 @@ int main(int argc, char* argv[])
   bool use_distance_table = false;
   bool is_batched = false;
   bool batch_prio = false;
+  bool rolling = false;
   int opt_variant = 0;
   float opt_constant = 0;
   // command line args
   int opt, longindex;
   opterr = 0;  // ignore getopt error
-  while ((opt = getopt_long(argc, argv, "t:m:o:s:vhT:Ldbpc:k:", longopts,
+  while ((opt = getopt_long(argc, argv, "t:m:o:s:vhT:Ldbpr:c:k:", longopts,
                             &longindex)) != -1) {
     switch (opt) {
       case 'o':
@@ -90,6 +95,10 @@ int main(int argc, char* argv[])
       case 'k':
         opt_constant = std::atof(optarg);
         break;
+      case 'r':
+        rolling = true;
+        rolling_file = std::string(optarg);
+        break;
       default:
         break;
     }
@@ -120,6 +129,9 @@ int main(int argc, char* argv[])
   auto solver =
       getSolver(solver_name, &P, verbose, argc, argv_copy, use_distance_table);
   solver->setLogShort(log_short);
+  if (rolling) {
+    solver->setRolling(rolling_file);
+  }
   solver->solve();
 
   if (solver->succeed() && !solver->getSolution().validate(&P)) {

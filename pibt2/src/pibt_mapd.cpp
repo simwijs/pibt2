@@ -258,6 +258,8 @@ void PIBT_MAPD::run()
 
     // increment timestep
     P->update();
+    // Output the rolling results
+    outputResultRolling();
 
     // failure
     if (P->getCurrentTimestep() >= max_timestep) {  //|| overCompTime()) {
