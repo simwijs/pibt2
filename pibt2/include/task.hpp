@@ -52,7 +52,9 @@ struct Batch {
   void add_task(Task* t)
   {
     if (timestep_appear == -1) {
-      timestep_appear = t->timestep_appear;
+      timestep_appear = t->timestep_appear;  // Assume the tasks appear at the
+                                             // same time, which they should to
+                                             // be in the same batch.
     }
     tasks.push_back(t);
   }
@@ -62,11 +64,13 @@ struct Batch {
     if (!is_finished())
       throw std::runtime_error(
           "Cannot get service time when the batch isn't finished");
-    int total = 0;
-    for (auto t : tasks) {
-      total += t->get_service_time();
+
+    if (timestep_finished == -1 || timestep_appear == -1) {
+      throw std::runtime_error(
+          "The appear or finished timestep is not set. Cannot get service "
+          "time");
     }
-    return total;
+    return timestep_finished - timestep_appear;
   }
 
   bool is_finished()
